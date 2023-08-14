@@ -122,7 +122,7 @@ class SwitchboardDataset:
             updated_data.append(session_dict)
 
         split_updated_data = self.split_into_chunks(updated_data)
-        return split_updated_data[:20]
+        return split_updated_data
 
 
     def split_train_val_test(self, split_updated_data):
