@@ -1,5 +1,5 @@
 [project]
-name = "sd_lex_corrector"
+name = "sd_error_corrector"
 version = "0.0.1"
 authors = [
     {name = "Svenja Filthaut", email = "filthaut@cl.uni-heidelberg.de"}
