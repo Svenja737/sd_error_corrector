@@ -1,0 +1,43 @@
+[project]
+name = "sd_lex_corrector"
+version = "0.0.1"
+authors = [
+    {name = "Svenja Filthaut", email = "filthaut@cl.uni-heidelberg.de"}
+]
+description = "Source code for an SD error corrector leveraging large language models."
+readme = "readme.md"
+license = {text = "MIT License"}
+requires-python = ">=3.8"
+dynamic = ["dependencies"]
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}
+
+[project.urls]
+"Homepage" = "https://github.com/Svenja737/sd_error_correction"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where=["src"]
+
+# pyproject.toml
+[tool.pytest.ini_options]
+log_cli = true
+log_cli_level = "DEBUG"
+log_cli_format = "%(asctime)s [%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)"
+log_cli_date_format = "%Y-%m-%d %H:%M:%S"
+
+pythonpath = [
+    "src"
+]
+minversion = "6.0"
+addopts = "-rA"
+testpaths = [
+    "tests",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning"
+]

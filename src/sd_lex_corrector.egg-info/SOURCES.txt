@@ -1,0 +1,13 @@
+pyproject.toml
+readme.md
+requirements.txt
+src/data_libs/__init__.py
+src/data_libs/metrics.py
+src/data_libs/switchboard_prep.py
+src/modeling/__init__.py
+src/modeling/lex_corrector_model.py
+src/sd_lex_corrector.egg-info/PKG-INFO
+src/sd_lex_corrector.egg-info/SOURCES.txt
+src/sd_lex_corrector.egg-info/dependency_links.txt
+src/sd_lex_corrector.egg-info/requires.txt
+src/sd_lex_corrector.egg-info/top_level.txt
