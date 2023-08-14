@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-#SBATCH --job-name=diarization_baseline
-#SBATCH --output=diarization_baseline_output.txt
+#SBATCH --job-name=sd_correction_model
+#SBATCH --output=sd_correction_model.txt
 #SBATCH --ntasks=1
 
 #SBATCH --mem=32000
