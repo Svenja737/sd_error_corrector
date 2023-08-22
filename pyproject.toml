@@ -14,7 +14,7 @@ dynamic = ["dependencies"]
 dependencies = {file = ["requirements.txt"]}
 
 [project.urls]
-"Homepage" = "https://github.com/Svenja737/sd_error_correction"
+"Homepage" = "https://github.com/Svenja737/sd_error_corrector"
 
 [build-system]
 requires = ["setuptools>=61.0"]

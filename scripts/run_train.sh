@@ -12,4 +12,4 @@
 #SBATCH --qos=batch
 #SBATCH --gres=gpu
 
-python3 train_test_model.py
+python3 train_model.py
