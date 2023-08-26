@@ -7,7 +7,7 @@ import random
 from typing import List
 
 
-def _modify_data(switchboard_corpus):
+def modify_data(switchboard_corpus):
     updated_lines = []
     new_sw_corpus = switchboard_corpus
     
@@ -22,7 +22,7 @@ def _modify_data(switchboard_corpus):
     new_sw_corpus["full"] = updated_lines
     return new_sw_corpus
 
-def _sort_and_align(new_sw_corpus):
+def sort_and_align(new_sw_corpus):
 
     data = new_sw_corpus["full"]
     turns_by_session = []
@@ -98,15 +98,15 @@ def _split_train_val_test(chunked_data):
     test_split = chunked_data[train_len+val_len : ]
 
     prepared_data = DatasetDict({"train" : Dataset.from_list(train_split), 
-                                    "validation" : Dataset.from_list(val_split), 
-                                    "test" : Dataset.from_list(test_split)})
+                                 "validation" : Dataset.from_list(val_split), 
+                                 "test" : Dataset.from_list(test_split)})
 
     return prepared_data
 
 def format_for_classification(switchboard_corpus):
-    # sorted_and_aligned = _sort_and_align(_modify_data(raw_switchboard_corpus))
-    m_temp = _modify_data(switchboard_corpus)
-    s_temp = _sort_and_align(m_temp)
+
+    m_temp = modify_data(switchboard_corpus)
+    s_temp = sort_and_align(m_temp)
 
     updated_data = []
     for session_list in s_temp:

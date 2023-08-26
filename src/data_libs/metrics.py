@@ -5,10 +5,9 @@ def compute_metrics(labels, preds):
 
     metric = evaluate.load("seqeval")
     all_metrics = metric.compute(predictions=preds, references=labels)
-    
     return {
-        "precision": all_metrics["overall_precision"],
-        "recall": all_metrics["overall_recall"],
-        "f1": all_metrics["overall_f1"],
-        "accuracy": all_metrics["overall_accuracy"],
+        "Accuracy" : all_metrics["accuracy"],
+        "Precision" : all_metrics["precision"],
+        "Recall" : all_metrics["recall"],
+        "F1" : all_metrics["f1"]
     }
