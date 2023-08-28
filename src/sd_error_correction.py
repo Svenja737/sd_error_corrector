@@ -2,8 +2,8 @@
 """
 from typing import Any
 import pytorch_lightning as L
-from transcription.transcribe_ibm_watson import transcribe_audio
-from transcription.watson_utils import read_watson_results
+# from transcription.transcribe_ibm_watson import transcribe_audio
+# from transcription.watson_utils import read_watson_results
 from modeling.sd_classification import SpeakerDiarizationCorrectionModule 
 from data_libs.sd_datamodule import SpeakerClassificationDataModule
 from pytorch_lightning.loggers import WandbLogger
@@ -14,14 +14,14 @@ class SDErrorCorrectionPipeline:
     def __init__(self):
         pass
 
-    def transcribe_audio_file(self, audio_file, output_path):
-        """Permitted formats: see IBM Watson STT
-        Output: IBM Watson STT transcription output. 
-        """
-        transcribe_audio(audio_file, output_path)
+    # def transcribe_audio_file(self, audio_file, output_path):
+    #     """Permitted formats: see IBM Watson STT
+    #     Output: IBM Watson STT transcription output. 
+    #     """
+    #     transcribe_audio(audio_file, output_path)
     
-    def load_watson_results(self, output_path):
-        return read_watson_results(output_path)
+    # def load_watson_results(self, output_path):
+    #     return read_watson_results(output_path)
 
     def preprocess_input_data(self):
         """Run data preprocessing for data, either Switchboard or Watson to send to train a model on or evaluate. 
