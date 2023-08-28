@@ -80,7 +80,7 @@ class SpeakerDiarizationCorrectionModule(L.LightningModule):
         labels = torch.stack(labels).int()
         predictions = torch.stack(predictions)
         true_labels, true_predictions = self.postprocess(predictions, labels)
-        self.log(self.metric(true_labels, true_predictions))
+        self.log_dict(self.metric(true_labels, true_predictions), logger=True)
         self.validation_step_outputs.clear()
     
     def test_step(self, batch, batch_idx) -> Dict:
