@@ -3,6 +3,7 @@ import os
 import wandb
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
+os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
 
 def main():
 
