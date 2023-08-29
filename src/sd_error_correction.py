@@ -69,13 +69,13 @@ class SDErrorCorrectionPipeline:
         sdc_datamodule.setup("fit")
         sdc_datamodule.setup("validate")
 
-        logger = WandbLogger(save_dir="results/wanddb_logging")
+        logger = WandbLogger(save_dir="results/wanddb_logging", offline=True)
 
         trainer = L.Trainer(
             accelerator="auto",
             devices="auto",
             use_distributed_sampler=False,
-            log_every_n_steps=10,
+            log_every_n_steps=50,
             enable_progress_bar=True,
             logger=logger,
         )
