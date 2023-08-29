@@ -1,12 +1,12 @@
 from sd_error_correction import SDErrorCorrectionPipeline
 import os
 
-os.environ["TOKENIZERS_PARALLELISM"] = "false"
-
 def main():
 
     sdcp = SDErrorCorrectionPipeline()
-    sdcp.run_evaluation("roberta-base", num_labels=3)
+    #sdcp.transcribe_audio_file("ampme.wav", "/watson/ampme.json")
+    t = sdcp.load_watson_results("/watson/ampme.json")
+    print(t)
 
 if __name__ == "__main__":
     main()

@@ -25,7 +25,7 @@ class SpeakerClassificationDataModule(pl.LightningDataModule):
             train_batch_size: int = 16,
             eval_batch_size: int = 16,
             num_labels: int = 3,
-            num_workers: int = 1,
+            num_workers: int = 8,
             use_data_pipelines=True, 
             prepare_data_per_node=False,
             allow_zero_length_dataloader_with_multiple_devices=False

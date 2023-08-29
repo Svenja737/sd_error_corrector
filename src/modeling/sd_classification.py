@@ -28,6 +28,7 @@ class SpeakerDiarizationCorrectionModule(L.LightningModule):
         classifier_dropout = 0.1
         self.feature_dim = 769
         self.sdc = torch.nn.Linear(self.feature_dim, self.num_labels)
+        print(f"SDC Size: {self.sdc}")
         self.dropout = torch.nn.Dropout(classifier_dropout)
         # TODO: implement BCELoss for multi-label classification
         self.criterion = torch.nn.CrossEntropyLoss()
@@ -42,7 +43,10 @@ class SpeakerDiarizationCorrectionModule(L.LightningModule):
         sequence_outputs = outputs[0]
         sequence_outputs = self.dropout(sequence_outputs)
         new_features = self.reconcile_features(sequence_outputs, p_labels)
+        print(f"Last hidden layer size: {sequence_outputs.size()}")
+        print(f"New features size: {new_features.size()}")
         logits = self.sdc(new_features)
+        print(f"Logits: {logits.size()}")
         # logits = torch.sigmoid(outputs)
         loss = None
         if labels is not None:
