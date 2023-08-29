@@ -24,11 +24,11 @@ class SpeakerDiarizationCorrectionModule(L.LightningModule):
         super().__init__()
         self.save_hyperparameters()
         self.num_labels = num_labels
-        self.model = RobertaModel.from_pretrained(model_name_or_path)
+        self.backbone = RobertaModel.from_pretrained(model_name_or_path)
         classifier_dropout = 0.1
         self.feature_dim = 769
-        self.sdc = torch.nn.Linear(self.feature_dim, self.num_labels)
-        print(f"SDC Size: {self.sdc}")
+        self.model = torch.nn.Linear(self.feature_dim, self.num_labels)
+        print(f"SDC Size: {self.model}")
         self.dropout = torch.nn.Dropout(classifier_dropout)
         # TODO: implement BCELoss for multi-label classification
         self.criterion = torch.nn.CrossEntropyLoss()
@@ -39,13 +39,13 @@ class SpeakerDiarizationCorrectionModule(L.LightningModule):
         self.metric = compute_metrics
 
     def forward(self, input_ids, attention_mask, p_labels, labels=None):
-        outputs = self.model(input_ids, attention_mask=attention_mask)
+        outputs = self.backbone(input_ids, attention_mask=attention_mask)
         sequence_outputs = outputs[0]
         sequence_outputs = self.dropout(sequence_outputs)
         new_features = self.reconcile_features(sequence_outputs, p_labels)
         print(f"Last hidden layer size: {sequence_outputs.size()}")
         print(f"New features size: {new_features.size()}")
-        logits = self.sdc(new_features)
+        logits = self.model(new_features)
         print(f"Logits: {logits.size()}")
         # logits = torch.sigmoid(outputs)
         loss = None
@@ -126,8 +126,8 @@ class SpeakerDiarizationCorrectionModule(L.LightningModule):
         list_labels = labels.squeeze().tolist()
         list_preds = predictions.squeeze().tolist()
 
-        true_labels = [[self.label_names[l] for l in label if l != -100] for label in labels]
-        true_predictions = [[self.label_names[p] for (p, l) in zip(prediction, label) if l != -100]
+        true_labels = [[int(l.item()) for l in label if l != -100] for label in labels]
+        true_predictions = [[int(p.item()) for (p, l) in zip(prediction, label) if l != -100]
                             for prediction, label in zip(predictions, labels)]
 
         return true_labels, true_predictions
