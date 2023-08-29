@@ -72,12 +72,13 @@ class SDErrorCorrectionPipeline:
         logger = WandbLogger(save_dir="results/wanddb_logging", offline=True)
 
         trainer = L.Trainer(
-            accelerator="auto",
-            devices="auto",
+            accelerator="gpu",
+            devices=1,
             use_distributed_sampler=False,
             log_every_n_steps=50,
             enable_progress_bar=True,
             logger=logger,
+
         )
 
         trainer.test(sdc_classifier, train_dataloaders=sdc_datamodule.train_dataloader(), val_dataloaders=sdc_datamodule.val_dataloader())

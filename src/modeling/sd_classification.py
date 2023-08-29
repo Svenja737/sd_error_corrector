@@ -17,8 +17,8 @@ class SpeakerDiarizationCorrectionModule(L.LightningModule):
                  adam_epsilon: float = 1e-8,
                  warmup_steps: int = 50,
                  weight_decay: float = 0.0,
-                 train_batch_size: int = 16,
-                 eval_batch_size: int = 16
+                 train_batch_size: int = 8,
+                 eval_batch_size: int = 8
                  ) -> None:
 
         super().__init__()

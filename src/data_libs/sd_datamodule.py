@@ -22,8 +22,8 @@ class SpeakerClassificationDataModule(pl.LightningDataModule):
     def __init__(
             self, 
             model_name_or_path: str,
-            train_batch_size: int = 16,
-            eval_batch_size: int = 16,
+            train_batch_size: int = 8,
+            eval_batch_size: int = 8,
             num_labels: int = 3,
             num_workers: int = 1,
             use_data_pipelines=True, 
