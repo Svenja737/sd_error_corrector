@@ -30,12 +30,11 @@ class SpeakerDiarizationCorrectionModule(L.LightningModule):
         classifier_dropout = 0.1
         self.feature_dim = 769
         self.model = torch.nn.Linear(self.feature_dim, self.num_labels)
-        print(f"SDC Size: {self.model}")
         self.dropout = torch.nn.Dropout(classifier_dropout)
         self.criterion = torch.nn.CrossEntropyLoss()
         self.validation_step_outputs = []
         self.test_step_outputs = []
-        self.label_names = ["A", "B"]
+        self.label_names = ["NA", "A", "B"]
         self.label2id = {i: label for i, label in enumerate(self.label_names)}
         self.id2label= {v: k for k, v in self.label2id.items()}
         self.metric = compute_metrics
