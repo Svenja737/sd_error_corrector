@@ -106,6 +106,7 @@ class SpeakerClassificationDataModule(pl.LightningDataModule):
         return new_labels
 
     def tokenize_and_align_labels(self, examples, inference=False):
+        # comment
         tokenized_inputs = self.tokenizer(examples["tokens"], truncation=True, padding="max_length", is_split_into_words=True, return_tensors="pt", return_attention_mask=True)
         all_labels = examples["labels"]
         new_labels = []
