@@ -62,31 +62,36 @@ def sort_and_align(new_sw_corpus):
 
     return all_turns
 
-def _chunk_dataset(dataset):
+def chunk_dataset(dataset, inference=False):
 
-    n_chunks = int(_max_item(dataset)/512)
+    n_chunks = int(max_item(dataset)/512)
+    n_chunks += 1 if n_chunks == 1 else n_chunks
 
     chunked_data = []
     for i in dataset:
         div_tokens = it.divide(n_chunks, i["tokens"])
         div_labels = it.divide(n_chunks, i["labels"])
-        div_p_labels = it.divide(n_chunks, i["perturbed_labels"])
-        for tokens, labels, p_labels in list(zip(div_tokens, div_labels, div_p_labels)):
-            chunked_data.append({"tokens" : list(tokens), "labels" : list(labels), "perturbed_labels" : list(p_labels), "session_id" : i["session_id"]})
+        if inference==False:
+            div_p_labels = it.divide(n_chunks, i["perturbed_labels"])
+            for tokens, labels, p_labels in list(zip(div_tokens, div_labels, div_p_labels)):
+                chunked_data.append({"tokens" : list(tokens), "labels" : list(labels), "perturbed_labels" : list(p_labels)})
+        else:
+            for tokens, labels in list(zip(div_tokens, div_labels)):
+                chunked_data.append({"tokens" : list(tokens), "labels" : list(labels)})
 
     for i, instance in enumerate(chunked_data): 
         instance.update({"id" : i+1})
 
     return chunked_data
 
-def _max_item(dict):
+def max_item(dict):
     max_len = 0
     for i in dict:
         if max_len < len(i["tokens"]):
             max_len = len(i["tokens"])
     return max_len
 
-def _split_train_val_test(chunked_data):
+def split_train_val_test(chunked_data):
 
     train_len = int(0.8 * len(chunked_data))
     val_len = int(0.05 * len(chunked_data)) if int(0.05 * len(chunked_data)) != 0 else 1
@@ -132,8 +137,8 @@ def format_for_classification(switchboard_corpus):
         session_dict["perturbed_labels"] = perturb_labels(speaker_labels)
         updated_data.append(session_dict)
 
-    chunked = _chunk_dataset(updated_data)
-    split_data = _split_train_val_test(chunked)
+    chunked = chunk_dataset(updated_data)
+    split_data = split_train_val_test(chunked)
 
     return split_data
 
