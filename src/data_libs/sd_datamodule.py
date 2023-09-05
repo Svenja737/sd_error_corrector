@@ -22,10 +22,12 @@ class SpeakerClassificationDataModule(pl.LightningDataModule):
     def __init__(
             self, 
             model_name_or_path: str,
+            dataset: str = "switchboard",
+            variant: str = "isip-aligned",
             train_batch_size: int = 8,
             eval_batch_size: int = 8,
             num_labels: int = 3,
-            num_workers: int = 1,
+            num_workers: int = 8,
             use_data_pipelines=True, 
             prepare_data_per_node=False,
             allow_zero_length_dataloader_with_multiple_devices=False
@@ -33,8 +35,8 @@ class SpeakerClassificationDataModule(pl.LightningDataModule):
         
         super().__init__()
         self.use_dp = use_data_pipelines
-        self.variant = "isip-aligned"
-        self.dataset_name = "switchboard"
+        self.variant = variant
+        self.dataset_name = dataset
         self.model_name_or_path = model_name_or_path
         self.prepare_data_per_node = prepare_data_per_node
         self.allow_zero_length_dataloader_with_multiple_devices = allow_zero_length_dataloader_with_multiple_devices
@@ -92,16 +94,10 @@ class SpeakerClassificationDataModule(pl.LightningDataModule):
         for word_id in word_ids:
             if word_id != current_word:
                 current_word = word_id
-                if is_perturbed == True:
-                    label = -100 if word_id is None else labels[word_id]
-                else:
-                    label = -100 if word_id is None else labels[word_id]
+                label = -100 if word_id is None else labels[word_id]
                 new_labels.append(label)
             elif word_id is None:
-                if is_perturbed == True:
-                    new_labels.append(-100)
-                else:
-                    new_labels.append(-100)
+                new_labels.append(-100)
             elif word_id == current_word:
                 if is_perturbed == True:
                     new_labels.append(labels[word_id])
@@ -109,20 +105,24 @@ class SpeakerClassificationDataModule(pl.LightningDataModule):
                     new_labels.append(-100)
         return new_labels
 
-    def tokenize_and_align_labels(self, examples):
-        tokenized_inputs = self.tokenizer(examples["tokens"], truncation=True, padding="max_length", is_split_into_words=True, return_tensors="pt", return_attention_mask=True, return_token_type_ids=True)
+    def tokenize_and_align_labels(self, examples, inference=False):
+        tokenized_inputs = self.tokenizer(examples["tokens"], truncation=True, padding="max_length", is_split_into_words=True, return_tensors="pt", return_attention_mask=True)
         all_labels = examples["labels"]
-        all_perturbed_labels = examples["perturbed_labels"]
         new_labels = []
-        new_perturbed_labels = []
+
+        if inference==False:
+            all_perturbed_labels = examples["perturbed_labels"]
+            new_perturbed_labels = []
 
         for i, labels in enumerate(all_labels):
             word_ids = tokenized_inputs.word_ids(i)
             new_labels.append(self.align_labels_with_tokens(labels, word_ids))
-            new_perturbed_labels.append(self.align_labels_with_tokens(all_perturbed_labels[i], word_ids, is_perturbed=True))
+            if inference==False:
+                new_perturbed_labels.append(self.align_labels_with_tokens(all_perturbed_labels[i], word_ids, is_perturbed=True))
 
         tokenized_inputs["labels"] = torch.tensor(new_labels)
-        tokenized_inputs["perturbed_labels"] = torch.tensor(new_perturbed_labels).to(torch.int64)
+        if inference == False:
+            tokenized_inputs["perturbed_labels"] = torch.tensor(new_perturbed_labels).to(torch.int64)
         return tokenized_inputs
 
 
