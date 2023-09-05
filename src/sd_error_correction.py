@@ -166,10 +166,10 @@ class SDErrorCorrectionPipeline:
         return preds
 
 
-p = read_watson_results("watson/single_examples/q2ec7.json")["perturbed_labels"]
-r = load_references("watson/single_examples/q2ec7_corrected.txt")
-C = SDErrorCorrectionPipeline()
-uevxo = C.load_watson_results("watson/single_examples/uevxo.json")
-for word, label in list(zip(uevxo["tokens"], uevxo["perturbed_labels"])):
-    print(word, label)
+# p = read_watson_results("watson/single_examples/q2ec7.json")["perturbed_labels"]
+# r = load_references("watson/single_examples/q2ec7_corrected.txt")
+# C = SDErrorCorrectionPipeline()
+# uevxo = C.load_watson_results("watson/single_examples/uevxo.json")
+# for word, label in list(zip(uevxo["tokens"], uevxo["perturbed_labels"])):
+#     print(word, label)
 # out: 0.7636612021857924
