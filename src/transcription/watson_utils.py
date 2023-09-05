@@ -28,8 +28,8 @@ def read_watson_results(watson_results_file) -> Dict:
                 tokens.append(t[0])
 
     for result in watson_results["speaker_labels"]:
-        speaker_labels.append(result["speaker"])
-        indiv_speakers.append(result["speaker"])
+        speaker_labels.append(int(result["speaker"])+1)
+        indiv_speakers.append(int(result["speaker"])+1)
     
     
     num_speakers = len(set(indiv_speakers))
@@ -37,7 +37,15 @@ def read_watson_results(watson_results_file) -> Dict:
     return {
         "num_speakers" : num_speakers,
         "tokens" : tokens,
-        "speaker_labels" : speaker_labels
+        "perturbed_labels" : speaker_labels
     }
 
-# r = read_watson_results("/home/sfilthaut/sd_error_corrector/watson_transcription_result.json")
+def load_references(reference_text_file):
+
+    labels = []
+    with open(f"/home/sfilthaut/sd_error_corrector/sd_error_corrector/scripts/{reference_text_file}", "r") as file:
+        for line in file.readlines():
+            labels.append(int(line.split(" ")[1].strip("\n"))+1)
+
+    return labels
+

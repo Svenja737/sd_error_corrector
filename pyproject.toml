@@ -17,7 +17,7 @@ dependencies = {file = ["requirements.txt"]}
 "Homepage" = "https://github.com/Svenja737/sd_error_corrector"
 
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=62.0"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
