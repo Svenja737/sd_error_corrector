@@ -81,8 +81,8 @@ class SDErrorCorrectionPipeline:
         logger = WandbLogger(save_dir="results/wanddb_logging")
 
         trainer = L.Trainer(
-            accelerator="auto",
-            devices="auto",
+            accelerator="gpu",
+            devices=1,
             use_distributed_sampler=False,
             log_every_n_steps=50,
             enable_progress_bar=True,
