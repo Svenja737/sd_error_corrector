@@ -14,7 +14,7 @@ class SpeakerDiarizationCorrectionModule(L.LightningModule):
                  model_name_or_path, 
                  num_labels: int,
                  test: bool = False,
-                 learning_rate: float = 2e-5,
+                 learning_rate: float = 1e-4,
                  adam_epsilon: float = 1e-8,
                  warmup_steps: int = 50,
                  weight_decay: float = 0.0,
@@ -27,7 +27,8 @@ class SpeakerDiarizationCorrectionModule(L.LightningModule):
         self.num_labels = num_labels
         self.test = test
         self.backbone = RobertaModel.from_pretrained(model_name_or_path)
-        classifier_dropout = 0.1
+        self.backbone.requires_grad_(False)
+        classifier_dropout = 0.01
         self.feature_dim = 769
         self.model = torch.nn.Linear(self.feature_dim, self.num_labels)
         self.dropout = torch.nn.Dropout(classifier_dropout)

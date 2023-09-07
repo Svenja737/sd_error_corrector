@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-#SBATCH --job-name=sd__correction_binary
-#SBATCH --output=sd_correction_binary.txt
+#SBATCH --job-name=sd_correction_frozen
+#SBATCH --output=sd_correction_frozen.txt
 #SBATCH --ntasks=1
 
 #SBATCH --mem=32000
