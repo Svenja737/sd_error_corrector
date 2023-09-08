@@ -27,9 +27,8 @@ class SpeakerDiarizationCorrectionModule(L.LightningModule):
         self.num_labels = num_labels
         self.test = test
         self.backbone = RobertaModel.from_pretrained(model_name_or_path)
-        self.backbone.requires_grad_(False)
         classifier_dropout = 0.01
-        self.feature_dim = 769
+        self.feature_dim = 768 + self.num_labels # reset back to +1 if not using vec_labels
         self.model = torch.nn.Linear(self.feature_dim, self.num_labels)
         self.dropout = torch.nn.Dropout(classifier_dropout)
         self.criterion = torch.nn.CrossEntropyLoss()
@@ -146,7 +145,7 @@ class SpeakerDiarizationCorrectionModule(L.LightningModule):
         return true_labels, true_predictions
     
     def reconcile_features(self, roberta_embeddings_list, p_labels) -> torch.Tensor:
-        return torch.cat((roberta_embeddings_list, torch.unsqueeze(p_labels, 2)), -1)
+        return torch.cat((roberta_embeddings_list, p_labels), -1) # no vec_labels: torch.cat((roberta_embeddings_list, torch.unsqueeze(p_labels, 2)), -1)
 
 
 

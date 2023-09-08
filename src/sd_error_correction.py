@@ -19,11 +19,11 @@ class SDErrorCorrectionPipeline:
     def __init__(self):
         pass
 
-    def transcribe_audio_file(self, audio_file, output_path) -> None:
+    def transcribe_audio_file(self, audio_file) -> None:
         """
         Transcribe an audio file with IBM Watson speech-to-text.
         """
-        transcribe_audio(audio_file, output_path)
+        transcribe_audio(audio_file)
     
     def load_watson_results(self, output_path) -> Dict:
         """
@@ -81,7 +81,7 @@ class SDErrorCorrectionPipeline:
         logger = WandbLogger(save_dir="results/wanddb_logging")
 
         trainer = L.Trainer(
-            accelerator="gpu",
+            accelerator="auto",
             devices=1,
             use_distributed_sampler=False,
             log_every_n_steps=50,
@@ -90,6 +90,38 @@ class SDErrorCorrectionPipeline:
         )
 
         trainer.fit(sdc_classifier, train_dataloaders=sdc_datamodule.train_dataloader(), val_dataloaders=sdc_datamodule.val_dataloader())
+
+
+    def train_transformer_model(self, model_name_or_path, num_labels):
+        """
+        Train an SD correction model for custom data, or finetune pretrained Switchboard classifier.
+        
+        Parameters:
+        -----------
+        model_name_or_path : str
+            name of pretrained TokenClassification model or path to local custom model
+        num_labels : int
+            number of token classes 
+        """
+        sdc_datamodule = SpeakerClassificationDataModule(model_name_or_path)
+        sdc_classifier = SpeakerDiarizationCorrectionModule(model_name_or_path, num_labels)
+
+        sdc_datamodule.setup("fit")
+        sdc_datamodule.setup("validate")
+
+        logger = WandbLogger(save_dir="results/wanddb_logging")
+
+        trainer = L.Trainer(
+            accelerator="auto",
+            devices=1,
+            use_distributed_sampler=False,
+            log_every_n_steps=50,
+            enable_progress_bar=True,
+            logger=logger,
+        )
+
+        trainer.fit(sdc_classifier, train_dataloaders=sdc_datamodule.train_dataloader(), val_dataloaders=sdc_datamodule.val_dataloader())
+
 
 
     def run_evaluation(self, model_name_or_path):
@@ -166,10 +198,4 @@ class SDErrorCorrectionPipeline:
         return preds
 
 
-# p = read_watson_results("watson/single_examples/q2ec7.json")["perturbed_labels"]
-# r = load_references("watson/single_examples/q2ec7_corrected.txt")
-# C = SDErrorCorrectionPipeline()
-# uevxo = C.load_watson_results("watson/single_examples/uevxo.json")
-# for word, label in list(zip(uevxo["tokens"], uevxo["perturbed_labels"])):
-#     print(word, label)
 # out: 0.7636612021857924

@@ -4,6 +4,7 @@ import pytorch_lightning as pl
 from torch.utils.data import DataLoader
 from transformers import AutoTokenizer, DataCollatorForTokenClassification
 from data_libs.switchboard_utils import format_for_classification
+from data_libs.switchboard_utils import labels_to_vecs
 import torch
 
 
@@ -69,6 +70,12 @@ class SpeakerClassificationDataModule(pl.LightningDataModule):
             self.columns = [c for c in self.dataset[split].column_names if c in self.loader_columns]
             self.dataset[split].set_format(type="torch", columns=self.columns)
 
+            # modify perturbed labels to one-hot encoded vectors
+            new_p = labels_to_vecs(self.dataset[split]["perturbed_labels"])
+            self.dataset[split] = self.dataset[split].add_column(name="new_perturbed_labels", column=new_p)
+            self.dataset[split] = self.dataset[split].remove_columns("perturbed_labels")
+            self.dataset[split] = self.dataset[split].rename_column("new_perturbed_labels", "perturbed_labels")
+
         self.train_dataset = self.dataset["train"]
         # print(self.train_dataset)
         self.val_dataset = self.dataset["validation"]
@@ -107,7 +114,7 @@ class SpeakerClassificationDataModule(pl.LightningDataModule):
 
     def tokenize_and_align_labels(self, examples, inference=False):
         # comment
-        tokenized_inputs = self.tokenizer(examples["tokens"], truncation=True, padding="max_length", is_split_into_words=True, return_tensors="pt", return_attention_mask=True)
+        tokenized_inputs = self.tokenizer(examples["tokens"], truncation=True, padding="max_length", is_split_into_words=True, return_attention_mask=True)
         all_labels = examples["labels"]
         new_labels = []
 
@@ -121,9 +128,9 @@ class SpeakerClassificationDataModule(pl.LightningDataModule):
             if inference==False:
                 new_perturbed_labels.append(self.align_labels_with_tokens(all_perturbed_labels[i], word_ids, is_perturbed=True))
 
-        tokenized_inputs["labels"] = torch.tensor(new_labels)
+        tokenized_inputs["labels"] = new_labels
         if inference == False:
-            tokenized_inputs["perturbed_labels"] = torch.tensor(new_perturbed_labels).to(torch.int64)
+            tokenized_inputs["perturbed_labels"] = new_perturbed_labels
         return tokenized_inputs
 
 

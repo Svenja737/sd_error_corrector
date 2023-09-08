@@ -5,6 +5,7 @@ from random import shuffle
 from datasets import Dataset, DatasetDict
 import random
 from typing import List
+import torch
 
 
 def modify_data(switchboard_corpus):
@@ -60,7 +61,7 @@ def sort_and_align(new_sw_corpus):
         sorted_session = sorted(session_turns, key=lambda x: (x["start"]))
         all_turns.append(sorted_session)
 
-    return all_turns
+    return all_turns[:10]
 
 def chunk_dataset(dataset, inference=False):
 
@@ -142,7 +143,7 @@ def format_for_classification(switchboard_corpus):
 
     return split_data
 
-def perturb_labels(label_list: List, noise_n: float=0.3) -> List:
+def perturb_labels(label_list: List, noise_n: float=0.0) -> List:
     # simple label swap for noise_n split of instance labels 
     labels = list(set(label_list))
     id_labels = []
@@ -160,8 +161,24 @@ def perturb_labels(label_list: List, noise_n: float=0.3) -> List:
     id_labels[:num] = rand_labels
     id_labels.sort()
     perturbed = [x[1] for x in id_labels]
-
+    
     return perturbed
+
+def labels_to_vecs(all_labels_tensor):
+    
+    all_vec_labels = []
+    for t in all_labels_tensor:
+
+        label_list = t.tolist()
+        labels = list(set(label_list))
+        vec_len = len(labels)
+        label_vec = [0] * vec_len
+
+        label_vecs = [[label_vec[j]+1 if i == j else label_vec[j] for j in range(len(label_vec))] for i in label_list]
+        all_vec_labels.append(label_vecs)
+
+    return all_vec_labels
+
 
 
 
