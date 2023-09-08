@@ -61,7 +61,7 @@ def sort_and_align(new_sw_corpus):
         sorted_session = sorted(session_turns, key=lambda x: (x["start"]))
         all_turns.append(sorted_session)
 
-    return all_turns[:10]
+    return all_turns
 
 def chunk_dataset(dataset, inference=False):
 
@@ -165,7 +165,7 @@ def perturb_labels(label_list: List, noise_n: float=0.0) -> List:
     return perturbed
 
 def labels_to_vecs(all_labels_tensor):
-    
+
     all_vec_labels = []
     for t in all_labels_tensor:
 
