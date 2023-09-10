@@ -25,17 +25,15 @@ class SpeakerClassificationDataModule(pl.LightningDataModule):
             model_name_or_path: str,
             dataset: str = "switchboard",
             variant: str = "isip-aligned",
-            train_batch_size: int = 8,
-            eval_batch_size: int = 8,
+            train_batch_size: int = 1,
+            eval_batch_size: int = 1,
             num_labels: int = 3,
             num_workers: int = 8,
-            use_data_pipelines=True, 
             prepare_data_per_node=False,
             allow_zero_length_dataloader_with_multiple_devices=False
             ):
         
         super().__init__()
-        self.use_dp = use_data_pipelines
         self.variant = variant
         self.dataset_name = dataset
         self.model_name_or_path = model_name_or_path
@@ -49,16 +47,14 @@ class SpeakerClassificationDataModule(pl.LightningDataModule):
         self.tokenizer = AutoTokenizer.from_pretrained(self.model_name_or_path, use_fast=True, add_prefix_space=True)
 
     def prepare_data(self) -> DatasetDict:
-        if self.use_dp == True:
-            dp = DataPipeline()
-            dp.load_dset(dataset=self.dataset_name, variant=self.variant)
-            AutoTokenizer.from_pretrained(self.model_name_or_path, use_fast=True, add_prefix_space=True)
+        dp = DataPipeline()
+        dp.load_dset(dataset=self.dataset_name, variant=self.variant)
+        AutoTokenizer.from_pretrained(self.model_name_or_path, use_fast=True, add_prefix_space=True)
             
     def setup(self, stage: str) -> DatasetDict:
 
-        if self.use_dp == True:
-            dp = DataPipeline()
-            corpus = dp.load_dset(dataset=self.dataset_name, variant=self.variant)
+        dp = DataPipeline()
+        corpus = dp.load_dset(dataset=self.dataset_name, variant=self.variant)
 
         self.dataset = format_for_classification(corpus)
         for split in self.dataset.keys():
@@ -71,10 +67,10 @@ class SpeakerClassificationDataModule(pl.LightningDataModule):
             self.dataset[split].set_format(type="torch", columns=self.columns)
 
             # modify perturbed labels to one-hot encoded vectors
-            new_p = labels_to_vecs(self.dataset[split]["perturbed_labels"])
-            self.dataset[split] = self.dataset[split].add_column(name="new_perturbed_labels", column=new_p)
-            self.dataset[split] = self.dataset[split].remove_columns("perturbed_labels")
-            self.dataset[split] = self.dataset[split].rename_column("new_perturbed_labels", "perturbed_labels")
+            # new_p = labels_to_vecs(self.dataset[split]["perturbed_labels"])
+            # self.dataset[split] = self.dataset[split].add_column(name="new_perturbed_labels", column=new_p)
+            # self.dataset[split] = self.dataset[split].remove_columns("perturbed_labels")
+            # self.dataset[split] = self.dataset[split].rename_column("new_perturbed_labels", "perturbed_labels")
 
         self.train_dataset = self.dataset["train"]
         # print(self.train_dataset)

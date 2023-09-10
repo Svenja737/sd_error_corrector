@@ -6,6 +6,7 @@ from pytorch_lightning.utilities.types import STEP_OUTPUT
 from transformers import RobertaModel, get_linear_schedule_with_warmup
 from torch.optim import AdamW
 from data_libs.metrics import compute_metrics
+from data_libs.switchboard_utils import labels_to_vecs
 
 
 class SpeakerDiarizationCorrectionModule(L.LightningModule):
@@ -18,13 +19,14 @@ class SpeakerDiarizationCorrectionModule(L.LightningModule):
                  adam_epsilon: float = 1e-8,
                  warmup_steps: int = 50,
                  weight_decay: float = 0.0,
-                 train_batch_size: int = 8,
-                 eval_batch_size: int = 8
+                 train_batch_size: int = 1,
+                 eval_batch_size: int = 1
                  ) -> None:
 
         super().__init__()
         self.save_hyperparameters()
         self.num_labels = num_labels
+        self.train_batch_size = train_batch_size
         self.test = test
         self.backbone = RobertaModel.from_pretrained(model_name_or_path)
         classifier_dropout = 0.01
@@ -43,7 +45,7 @@ class SpeakerDiarizationCorrectionModule(L.LightningModule):
         outputs = self.backbone(input_ids, attention_mask=attention_mask)
         sequence_outputs = outputs[0]
         sequence_outputs = self.dropout(sequence_outputs)
-        new_features = self.reconcile_features(sequence_outputs, p_labels)
+        new_features = self.reconcile_features(sequence_outputs, labels_to_vecs(p_labels))
         logits = self.model(new_features)
         loss = None
         if labels is not None:
@@ -135,9 +137,6 @@ class SpeakerDiarizationCorrectionModule(L.LightningModule):
     
     def postprocess(self, predictions, labels):
 
-        list_labels = labels.squeeze().tolist()
-        list_preds = predictions.squeeze().tolist()
-
         true_labels = [[int(l.item()) for l in label if l != -100] for label in labels]
         true_predictions = [[int(p.item()) for (p, l) in zip(prediction, label) if l != -100]
                             for prediction, label in zip(predictions, labels)]
@@ -145,7 +144,9 @@ class SpeakerDiarizationCorrectionModule(L.LightningModule):
         return true_labels, true_predictions
     
     def reconcile_features(self, roberta_embeddings_list, p_labels) -> torch.Tensor:
-        return torch.cat((roberta_embeddings_list, p_labels), -1) # no vec_labels: torch.cat((roberta_embeddings_list, torch.unsqueeze(p_labels, 2)), -1)
+        unsq_p_labels = torch.unsqueeze(p_labels, 0)
+        return torch.cat((roberta_embeddings_list, unsq_p_labels), -1) # no vec_labels: torch.cat((roberta_embeddings_list, p_labels), -1)
+
 
 
 
