@@ -42,10 +42,11 @@ class SpeakerDiarizationCorrectionModule(L.LightningModule):
         self.metric = compute_metrics
 
     def forward(self, input_ids, attention_mask, p_labels, labels=None):
+        p_label_vecs = labels_to_vecs(p_labels)
         outputs = self.backbone(input_ids, attention_mask=attention_mask)
         sequence_outputs = outputs[0]
-        sequence_outputs = self.dropout(sequence_outputs)
-        new_features = self.reconcile_features(sequence_outputs, labels_to_vecs(p_labels))
+        sequence_outputs = self.dropout(sequence_outputs, p_label_vecs)
+        new_features = self.reconcile_features(sequence_outputs, )
         logits = self.model(new_features)
         loss = None
         if labels is not None:
