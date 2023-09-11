@@ -1,7 +1,7 @@
 import random
 import torch
 import data_pipelines.datasets as dp
-import itertools as it
+import more_itertools as mit
 import regex as re
 from datasets import Dataset, DatasetDict
 from typing import List, Dict
@@ -18,7 +18,7 @@ class SwitchboardPreprocessor:
 
         updated_lines = []
 
-        for line in raw_switchboard_corpus["lines"]:
+        for line in raw_switchboard_corpus["full"]:
             updated_turns = []
             for turn in line["turns"]:
                 turn["participant"] = line["participant"]
@@ -75,10 +75,10 @@ class SwitchboardPreprocessor:
         n_chunks = int(self.max_item(switchboard_dataset)/512) if int(self.max_item(switchboard_dataset)/512) != 1 else int(self.max_item(switchboard_dataset)/512) + 1
         chunked_data = []
         for i in switchboard_dataset:
-            div_tokens = it.divide(n_chunks, i["tokens"])
-            div_labels = it.divide(n_chunks, i["labels"])
+            div_tokens = mit.divide(n_chunks, i["tokens"])
+            div_labels = mit.divide(n_chunks, i["labels"])
             if inference==False:
-                div_p_labels = it.divide(n_chunks, i["perturbed_labels"])
+                div_p_labels = mit.divide(n_chunks, i["perturbed_labels"])
                 for tokens, labels, p_labels in list(zip(div_tokens, div_labels, div_p_labels)):
                     chunked_data.append({"tokens" : list(tokens), "labels" : list(labels), "perturbed_labels" : list(p_labels)})
             else:
@@ -118,10 +118,9 @@ class SwitchboardPreprocessor:
 
         labels = list(set(label_list))
         id_labels = [(i, label) for i, label in enumerate(label_list)]
-
         random.shuffle(id_labels)
         num = int(self.label_noise*len(id_labels))
-        rand_labels = [(i, random.choice(labels)) for i in id_labels[:num]]
+        rand_labels = [(i[0], random.choice(labels)) for i in id_labels[:num]]
         id_labels[:num] = rand_labels
         id_labels.sort()
         perturbed = [x[1] for x in id_labels]
@@ -130,7 +129,7 @@ class SwitchboardPreprocessor:
 
     def format_for_classification(self, switchboard_corpus):
 
-        m_temp = self.modify_data(switchboard_corpus)
+        m_temp = self.add_speakers_to_turns(switchboard_corpus)
         s_temp = self.sort_and_align(m_temp)
 
         updated_data = []
@@ -157,7 +156,7 @@ class SwitchboardPreprocessor:
             session_dict["perturbed_labels"] = self.perturb_labels(speaker_labels)
             updated_data.append(session_dict)
 
-        chunked = self.chunk_dataset(updated_data)
+        chunked = self.divide_sessions_into_chunks(updated_data)
         split_data = self.split_train_val_test(chunked)
 
         return split_data
