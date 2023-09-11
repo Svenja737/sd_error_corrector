@@ -1,19 +1,33 @@
-# Lexical Speaker Diarization Error Corrector 
+# README
 
-## SD Error Correction with Token Classification 
-### An Experimental Approach
+## Folder Structure
 
-## Summary
+pyproject
+config
+requirements
+readme
+-scripts
+    train
+    eval
+    inference
+    transcribe
+-src
+    - data_libs
+        data_module
+        data_prep
+        utils
+    - modeling
+        sdec_lightning_module
+    - transcription
+        transcribe_with_watson
+        watson_utils
+    - audio_enhancement
+        enhance_audio_file
+        audio_utils
+    SDEC_Pipeline
 
-Inspired by this great paper by [] et al., the SD Error Corrector takes in (currently only 2 speaker) diarization results to alleviate classification errors. This is achieved by leveraging audio transcripts and large language models. 
+## Data Structure
 
-## Usage
+### Training
 
-In order to train a classifier on your own diarization data, please follow the steps outlined below:
-
-[DETAIL STEPS HERE]
-
-## Contact
-
-If you have concerns or questions, you can contact me by email: filthaut@cl.uni-heidelberg.de.
-
+### Inference
