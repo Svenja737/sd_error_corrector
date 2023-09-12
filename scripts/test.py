@@ -10,7 +10,7 @@ def main():
 
     wandb.login(anonymous="allow", key="fa9a8ca94055c30f4a506593d5ed4d3a3cad70f2")
     sdec = SDECPipeline()
-    sdec.test_switchboard("roberta-base", "models/epoch=39-step=48760.ckpt", 3)
+    sdec.test_switchboard("roberta-base", "../models/epoch=39-step=48760.ckpt", 3)
 
 if __name__ == "__main__":
     main()
