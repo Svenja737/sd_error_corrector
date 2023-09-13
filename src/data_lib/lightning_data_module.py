@@ -25,7 +25,7 @@ class SDDataModule(L.LightningDataModule):
                  eval_batch_size,
                  num_labels,
                  num_workers,
-                 label_noise=0.3,
+                 label_noise,
                  prepare_data_per_node = False,
                  allow_zero_length_dataloader_with_multiple_devices=False,
                  dataset_name = "switchboard",

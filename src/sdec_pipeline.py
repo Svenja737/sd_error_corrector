@@ -56,7 +56,7 @@ class SDECPipeline:
             eval_batch_size=8,
             num_labels=num_labels,
             num_workers=4,
-            label_noise=0.3
+            label_noise=0.15
             )
         
         sdec_model = SDECModule.load_from_checkpoint(
@@ -89,7 +89,7 @@ class SDECPipeline:
             eval_batch_size=8,
             num_labels=num_labels,
             num_workers=4,
-            label_noise=0.3
+            label_noise=0.0
             )
         
         sdec_model = SDECModule.load_from_checkpoint(
