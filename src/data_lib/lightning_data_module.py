@@ -99,9 +99,10 @@ class SDDataModule(L.LightningDataModule):
         return new_labels
 
     def tokenize_and_align_labels(self, examples):
-        tokenized_inputs = self.tokenizer(examples["tokens"], truncation=True, padding="max_length", is_split_into_words=True, return_attention_mask=True)
+        tokenized_inputs = self.tokenizer(examples["tokens"], truncation=True, padding="max_length", is_split_into_words=True, return_attention_mask=True, return_tensors="pt")
         all_labels = examples["labels"]
         new_labels = []
+
         all_perturbed_labels = examples["perturbed_labels"]
         new_perturbed_labels = []
 
@@ -112,6 +113,18 @@ class SDDataModule(L.LightningDataModule):
         tokenized_inputs["labels"] = new_labels
         tokenized_inputs["perturbed_labels"] = self.labels_to_vecs(new_perturbed_labels)
         return tokenized_inputs
+    
+    def tokenize_and_align_labels_test(self, examples):
+        tokenized_inputs = self.tokenizer(examples["tokens"], truncation=True, padding="max_length", is_split_into_words=True, return_attention_mask=True, return_tensors="pt")
+        all_labels = examples["labels"]
+        new_labels = []
+
+        for i, labels in enumerate(all_labels):
+            word_ids = tokenized_inputs.word_ids(i)
+            new_labels.append(self.align_labels_with_tokens(labels, word_ids))
+
+        tokenized_inputs["labels"] = self.labels_to_vecs(new_labels)
+        return tokenized_inputs
 
     def labels_to_vecs(self, batch_label_list):
         label_vecs = []
@@ -119,5 +132,4 @@ class SDDataModule(L.LightningDataModule):
             labels = list(set(label_list))
             label_vec = [0] * len(label_list)
             label_vecs.append([[label_vec[i]+1 if i == j else label_vec[i] for j in range(len(labels))] for i in label_list])
-        print(torch.as_tensor(label_vecs).size())
         return torch.as_tensor(label_vecs)
