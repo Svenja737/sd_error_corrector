@@ -15,7 +15,7 @@ class SDECPipeline:
 
     # # # FUNCTIONS FOR MODEL TRAINING AND TESTING # # # 
 
-    def train_model(self, model_name_or_path, num_labels):
+    def train_model(self, model_name_or_path, num_labels, label_noise):
 
         sdec_datamodule = SDDataModule(
             model_name_or_path,
@@ -23,7 +23,7 @@ class SDECPipeline:
             eval_batch_size=8,
             num_labels=num_labels,
             num_workers=4,
-            label_noise=0.15
+            label_noise=label_noise
             )
         
         sdec_model = SDECModule(
@@ -48,7 +48,7 @@ class SDECPipeline:
 
         trainer.fit(sdec_model, train_dataloaders=sdec_datamodule.train_dataloader(), val_dataloaders=sdec_datamodule.val_dataloader())
 
-    def test_switchboard(self, model_name_or_path, checkpoint, num_labels):
+    def test_switchboard(self, model_name_or_path, checkpoint, num_labels, label_noise):
 
         sdec_datamodule = SDDataModule(
             model_name_or_path,
@@ -56,7 +56,7 @@ class SDECPipeline:
             eval_batch_size=8,
             num_labels=num_labels,
             num_workers=4,
-            label_noise=0.15
+            label_noise=label_noise
             )
         
         sdec_model = SDECModule.load_from_checkpoint(
