@@ -1,5 +1,4 @@
 import json
-import os
 from os.path import join, dirname
 from ibm_watson import SpeechToTextV1
 from ibm_watson.websocket import RecognizeCallback, AudioSource
@@ -7,6 +6,13 @@ from ibm_cloud_sdk_core.authenticators import IAMAuthenticator
 
 
 def transcribe(audio_path): 
+    """Transcribe an audio file using IBM Watson websockets.
+
+    Parameters:
+    -----------
+    audio_path
+        filepath to audio file you want to transcribe
+    """
 
     authenticator = IAMAuthenticator('cKlZoSBS9eATlIW1VhK_QWMXz0aH3ej9_iUGt7x1Xefl')
     service = SpeechToTextV1(
@@ -36,7 +42,7 @@ def transcribe(audio_path):
         service.recognize_using_websocket(
             audio=audio_source,
             recognize_callback=my_recognize_callback,
-            model="en-GB_Telephony",
+            model="en-US_Telephony",
             content_type='audio/wav',
             max_alternatives=1,
             speaker_labels=True,

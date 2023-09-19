@@ -11,6 +11,8 @@ goal: make output ready for SD correction.
 """
 
 def read_watson(watson_results_file) -> Dict:
+    """Reads a json file with IBM Watson results and returns it in the form of a dictionary.
+    """
 
     tokens = []
     speaker_labels = []
@@ -40,10 +42,21 @@ def read_watson(watson_results_file) -> Dict:
     }
 
 def load_labels(reference_text_file):
+    """Loads a list of labels from a textfile with corrected tokens and labels.
+    """
 
     labels = []
     with open(f"/home/sfilthaut/sdec_revamped/sdec_revamped/{reference_text_file}", "r") as file:
         for line in file.readlines():
-            labels.append(int(line.split(" ")[1].strip("\n")))
+            labels.append(int(line.split("\t")[1].strip("\n")))
 
     return labels
+
+def save_as_txt(watson_output, filepath):
+    """Saves results in a dictionary into a text file.
+    """
+    with open(filepath, "w", encoding="utf-8") as file:
+        for token, label in list(zip(watson_output["tokens"], watson_output["labels"])):
+            file.write(f"{token}\t{label}\n")
+
+
