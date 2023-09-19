@@ -110,6 +110,7 @@ class SDECModule(L.LightningModule):
         predictions = torch.stack(predictions)
         true_labels, true_predictions = self.postprocess(predictions, labels)
         self.log_dict(self.metric(true_labels, true_predictions), logger=True)
+        self.log("Predictions", true_predictions)
         self.test_step_outputs.clear()
         return {"metrics" : self.metric(true_labels, true_predictions)}
 

@@ -6,7 +6,7 @@ from data_lib.lightning_data_module import SDDataModule
 from pytorch_lightning.loggers import WandbLogger
 from data_lib.data_prep import SwitchboardPreprocessor
 from transcription_tools.transcribe_audio import transcribe
-from transcription_tools.utils_watson import read_watson, load_labels
+from transcription_tools.utils_watson import read_watson, load_labels, save_as_txt
 
 class SDECPipeline:
 
@@ -109,7 +109,7 @@ class SDECPipeline:
         preds = []
         for i in chunked_data:
             i["labels"] = [i["labels"]]
-            out = sdec_datamodule.tokenize_and_align_labels_test(i)
+            out = sdec_datamodule.tokenize_and_align_labels_inference(i)
             input_ids.append(out["input_ids"])
             p_labels.append(torch.as_tensor(out["labels"]))
             attention_mask.append(out["attention_mask"])
@@ -126,8 +126,6 @@ class SDECPipeline:
     def score(self, preds, labels):
         count = 0
         total = preds[0].squeeze().size()[0]
-        print(total)
-        print(preds[0].squeeze(), labels)
         for p_label, r_label in list(zip(preds[0].squeeze().tolist(), labels)):
             if p_label == r_label:
                 count += 1
@@ -154,6 +152,13 @@ class SDECPipeline:
         Load corrected labels from a text file.
         """
         return load_labels(path_to_corrected_labels)
+    
+    def save_watson_txt(self, watson_output, filepath):
+        """
+        Save results from Watson (dict) in a text file.
+        """
+        save_as_txt(watson_output, filepath)
+        
         
 
 
