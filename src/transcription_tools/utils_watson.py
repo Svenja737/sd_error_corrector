@@ -1,17 +1,18 @@
 from typing import Dict
 import json
 
-"""Functions for processing output of IBM Watson STT Service of format:
-{results_index,
-results : list of dicts with ASR results,
-speaker_labels: list of dicts of labels per word
-}
-
-goal: make output ready for SD correction.
-"""
 
 def read_watson(watson_results_file) -> Dict:
     """Reads a json file with IBM Watson results and returns it in the form of a dictionary.
+
+    Parameters
+    ----------
+    watson_results_file: str
+        Path to a json file with IBM Watson STT results. should have the fields "results" and "speaker_labels".
+    Returns
+    -------
+    dict
+        Dictionary with the number of individual speakers, tokens and labels in the file.
     """
 
     tokens = []
@@ -41,8 +42,18 @@ def read_watson(watson_results_file) -> Dict:
         "labels" : speaker_labels
     }
 
-def load_labels(reference_text_file):
-    """Loads a list of labels from a textfile with corrected tokens and labels.
+def load_labels(reference_text_file) -> list:
+    """
+    Loads a list of labels from a textfile with corrected tokens and labels.
+
+    Paramters
+    ---------
+    reference_text_file: list
+        text file with tokens and speaker labels (separated by tab)
+    Returns
+    -------
+    labels : list
+        list of labels
     """
 
     labels = []
@@ -52,8 +63,39 @@ def load_labels(reference_text_file):
 
     return labels
 
-def save_as_txt(watson_output, filepath):
-    """Saves results in a dictionary into a text file.
+
+def load_tokens(reference_text_file) -> list:
+    """
+    Loads a list of tokens from a text file with corrected tokens and labels.
+
+    Paramters
+    ---------
+    reference_text_file: list
+        text file with tokens and speaker labels (separated by tab)
+    Returns
+    -------
+    tokens : list
+        list of tokens
+    """
+
+    tokens = []
+    with open(f"/home/sfilthaut/sdec_revamped/sdec_revamped/{reference_text_file}", "r") as file:
+        for line in file.readlines():
+            tokens.append(int(line.split("\t")[1].strip("\n")))
+
+    return tokens
+
+
+def save_as_txt(watson_output, filepath) -> None:
+    """
+    Saves results in a dictionary into a text file.
+
+    Parameters
+    ----------
+    watson_output: dict
+        dictionary with IBM Watson STT output, as returned by read_watson()
+    filepath: str
+        path to text file
     """
     with open(filepath, "w", encoding="utf-8") as file:
         for token, label in list(zip(watson_output["tokens"], watson_output["labels"])):

@@ -1,7 +1,10 @@
 import torch 
 import pytorch_lightning as L
 from transformers import AutoTokenizer
+from typing import Dict
 from modelling.lightning_sd_model import SDECModule
+from modelling.lightning_sd_model_no_fusion import SDECModuleNoFusion
+from modelling.lightning_sd_model_scheduled import SDECModuleWithSchedule
 from data_lib.lightning_data_module import SDDataModule
 from pytorch_lightning.loggers import WandbLogger
 from data_lib.data_prep import SwitchboardPreprocessor
@@ -9,13 +12,40 @@ from transcription_tools.transcribe_audio import transcribe
 from transcription_tools.utils_watson import read_watson, load_labels, save_as_txt
 
 class SDECPipeline:
+    """
+    Pipeline for diarization label correction model training/evaluation, audio transcription and 
+    diarization using IBM Watson and audio enhancement/noise reduction.
+
+    Methods:
+    --------
+    train_model(model_name_or_path, num_labels, label_noise)
+        train a classifier to correct speaker labels for a transcript.
+    test_switchboard(model_name_or_path, checkpoint, num_labels, label_noise)
+        test diarization re-classifier on specifically a switchboard test split.
+    inference(model_name_or_path, checkpoint, inputs, num_labels)
+        perform diarization label correction for single examples.
+    score(preds, labels)
+        return accuracy of diarization labels vs. reference labels
+    """
 
     def __init__(self):
         pass
 
     # # # FUNCTIONS FOR MODEL TRAINING AND TESTING # # # 
 
-    def train_model(self, model_name_or_path, num_labels, label_noise):
+    def train_model(self, model_name_or_path, num_labels, label_noise) -> None:
+        """
+        Trains a speaker diarization label correction model.
+
+        Parameters
+        ----------
+        model_name_or_path: str
+            Valid name of a huggingface model or path to a saved model. 
+        num_labels: int
+            Number of speakers in the training data.
+        label_noise: float
+            Amount of perturbation on the labels fused with input tokens.
+        """
 
         sdec_datamodule = SDDataModule(
             model_name_or_path,
@@ -48,7 +78,107 @@ class SDECPipeline:
 
         trainer.fit(sdec_model, train_dataloaders=sdec_datamodule.train_dataloader(), val_dataloaders=sdec_datamodule.val_dataloader())
 
-    def test_switchboard(self, model_name_or_path, checkpoint, num_labels, label_noise):
+    def train_model_no_fusion(self, model_name_or_path, num_labels, label_noise) -> None:
+        """
+        Trains a speaker diarization label correction model.
+
+        Parameters
+        ----------
+        model_name_or_path: str
+            Valid name of a huggingface model or path to a saved model. 
+        num_labels: int
+            Number of speakers in the training data.
+        label_noise: float
+            Amount of perturbation on the labels fused with input tokens.
+        """
+
+        sdec_datamodule = SDDataModule(
+            model_name_or_path,
+            train_batch_size=8,
+            eval_batch_size=8,
+            num_labels=num_labels,
+            num_workers=4,
+            label_noise=label_noise
+            )
+        
+        sdec_model = SDECModuleNoFusion(
+            model_name_or_path,
+            num_labels=num_labels,
+            train_batch_size=8,
+            eval_batch_size=8
+        )
+
+        sdec_datamodule.setup("fit")
+        sdec_datamodule.setup("validate")
+
+        logger = WandbLogger(save_dir=f"wandb_logging/{model_name_or_path}")
+
+        trainer = L.Trainer(
+            devices=1,
+            log_every_n_steps=30,
+            enable_progress_bar=True,
+            enable_checkpointing=True,
+            logger=logger
+        )
+
+        trainer.fit(sdec_model, train_dataloaders=sdec_datamodule.train_dataloader(), val_dataloaders=sdec_datamodule.val_dataloader())
+
+    def train_model_scheduled(self, model_name_or_path, num_labels, label_noise) -> None:
+        """
+        Trains a speaker diarization label correction model.
+
+        Parameters
+        ----------
+        model_name_or_path: str
+            Valid name of a huggingface model or path to a saved model. 
+        num_labels: int
+            Number of speakers in the training data.
+        label_noise: float
+            Amount of perturbation on the labels fused with input tokens.
+        """
+
+        sdec_datamodule = SDDataModule(
+            model_name_or_path,
+            train_batch_size=8,
+            eval_batch_size=8,
+            num_labels=num_labels,
+            num_workers=4,
+            label_noise=label_noise
+            )
+        
+        sdec_model = SDECModuleWithSchedule(
+            model_name_or_path,
+            num_labels=num_labels,
+            train_batch_size=8,
+            eval_batch_size=8
+        )
+
+        sdec_datamodule.setup("fit")
+        sdec_datamodule.setup("validate")
+
+        logger = WandbLogger(save_dir=f"wandb_logging/{model_name_or_path}")
+
+        trainer = L.Trainer(
+            devices=1,
+            log_every_n_steps=30,
+            enable_progress_bar=True,
+            enable_checkpointing=True,
+            logger=logger
+        )
+
+        trainer.fit(sdec_model, train_dataloaders=sdec_datamodule.train_dataloader(), val_dataloaders=sdec_datamodule.val_dataloader())
+
+    def test_switchboard(self, model_name_or_path, checkpoint, num_labels, label_noise) -> None:
+        """
+        Evaluated a speaker diarization label correction model on the Switchboard dataset (test split).
+
+        Parameters
+        ----------
+        model_name_or_path: str
+        checkpoint: str
+        num_labels: int
+        label_noise: float
+        """
 
         sdec_datamodule = SDDataModule(
             model_name_or_path,
@@ -81,8 +211,21 @@ class SDECPipeline:
 
         trainer.test(sdec_model, dataloaders=sdec_datamodule.test_dataloader())
 
-    def inference(self, model_name_or_path, checkpoint, inputs, num_labels):
+    def inference(self, model_name_or_path, checkpoint, inputs, num_labels) -> list:
+        """
+        Trains a speaker diarization label correction model.
 
+        Parameters
+        ----------
+        model_name_or_path: str
+        checkpoint: str
+        inputs: dict
+        num_labels: int
+
+        Returns
+        -------
+        preds: list
+        """
         sdec_datamodule = SDDataModule(
             model_name_or_path,
             train_batch_size=8,
@@ -123,7 +266,10 @@ class SDECPipeline:
             
         return preds
     
-    def score(self, preds, labels):
+    def score(self, preds, labels) -> float:
+        """
+        Calculate accuracy of speaker labels predictions compared to reference labels. 
+        """
         count = 0
         total = preds[0].squeeze().size()[0]
         for p_label, r_label in list(zip(preds[0].squeeze().tolist(), labels)):
@@ -135,25 +281,25 @@ class SDECPipeline:
 
     # # # FUNCTIONS FOR TRANSCRIPTION # # # 
 
-    def transcribe_audio_file(self, audio_file) -> None:
+    def transcribe_audio_file(self, audio_file, auth_token) -> None:
         """
         Transcribe an audio file with IBM Watson speech-to-text.
         """
-        transcribe(audio_file)
+        transcribe(audio_file, auth_token)
     
-    def load_watson_results(self, output_path):
+    def load_watson_results(self, output_path) -> Dict:
         """
         Load Watson results from a json file.
         """
         return read_watson(output_path)
     
-    def load_reference_from_txt(self, path_to_corrected_labels):
+    def load_reference_from_txt(self, path_to_corrected_labels) -> list:
         """
         Load corrected labels from a text file.
         """
         return load_labels(path_to_corrected_labels)
     
-    def save_watson_txt(self, watson_output, filepath):
+    def save_watson_txt(self, watson_output, filepath) -> None:
         """
         Save results from Watson (dict) in a text file.
         """

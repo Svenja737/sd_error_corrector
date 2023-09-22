@@ -1,4 +1,5 @@
 import torch 
+import random
 import pytorch_lightning as L
 from typing import Any, Dict, Optional
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -6,7 +7,7 @@ from transformers import RobertaModel, get_linear_schedule_with_warmup
 from torch.optim import AdamW
 from data_lib.classification_metrics import compute_metrics
 
-class SDECModule(L.LightningModule):
+class SDECModuleWithSchedule(L.LightningModule):
     """
     Pytorch Lightning module for speaker diarization label re-classification.
 
@@ -98,7 +99,8 @@ class SDECModule(L.LightningModule):
     def training_step(self, batch, batch_ids):
         input_ids = batch["input_ids"]
         attention_mask = batch["attention_mask"]
-        p_labels = batch["perturbed_labels"]
+        noise = self.schedule_noise_by_epoch()
+        p_labels = self.perturb_labels(batch["perturbed_labels"], noise)
         labels = batch["labels"]
         backbone_embeddings = self.get_embeddings(input_ids, attention_mask)
         fused_embeddings = self.reconcile_features_labels(backbone_embeddings, p_labels)
@@ -109,7 +111,8 @@ class SDECModule(L.LightningModule):
     def validation_step(self, batch, batch_ids):
         input_ids = batch["input_ids"]
         attention_mask = batch["attention_mask"]
-        p_labels = batch["perturbed_labels"]
+        noise = self.schedule_noise_by_epoch()
+        p_labels = self.perturb_labels(batch["perturbed_labels"], noise)
         labels = batch["labels"]
         backbone_embeddings = self.get_embeddings(input_ids, attention_mask)
         fused_embeddings = self.reconcile_features_labels(backbone_embeddings, p_labels)
@@ -121,7 +124,8 @@ class SDECModule(L.LightningModule):
     def test_step(self, batch, batch_ids):
         input_ids = batch["input_ids"]
         attention_mask = batch["attention_mask"]
-        p_labels = batch["perturbed_labels"]
+        noise = self.schedule_noise_by_epoch()
+        p_labels = self.perturb_labels(batch["perturbed_labels"], noise)
         labels = batch["labels"]
         backbone_embeddings = self.get_embeddings(input_ids, attention_mask)
         fused_embeddings = self.reconcile_features_labels(backbone_embeddings, p_labels)
@@ -160,7 +164,9 @@ class SDECModule(L.LightningModule):
         return {"metrics" : self.metric(true_labels, true_predictions)}
 
     def configure_optimizers(self) -> Any:
-        """Prepare optimizer and schedule (linear warmup and decay)"""
+        """
+        Prepare optimizer and schedule (linear warmup and decay)
+        """
         model = self.model
         no_decay = ["bias", "LayerNorm.weight"]
         optimizer_grouped_parameters = [
@@ -192,3 +198,33 @@ class SDECModule(L.LightningModule):
 
     def reconcile_features_labels(self, backbone_embeddings, p_labels):
         return torch.cat((backbone_embeddings, p_labels), -1)
+    
+
+    def perturb_labels(self, labels, noise_n):
+
+        batch_perturbed = []
+        for batch in torch.Tensor.tolist(labels):
+            perturbed = []
+            for seq_labels in batch:
+                label_list = [x for x in range(self.num_labels)]
+                id_labels = [(i, label) for i, label in enumerate(seq_labels)] #(i, [0, 1, 0])
+                random.shuffle(id_labels)
+                range_perturbed_labels = int(len(id_labels)*noise_n)
+                rand_labels = [(i[0], random.choice(label_list)) for i in id_labels[:range_perturbed_labels]]
+                new_rand_labels = []
+                for i, label in rand_labels:
+                    label_vec = [0] * self.num_labels
+                    label_vec[label] += 1
+                    new_rand_labels.append((i, label_vec))
+                id_labels[:range_perturbed_labels] = new_rand_labels
+                id_labels.sort()
+                perturbed.append([x[1] for x in id_labels])
+            batch_perturbed.append(perturbed)
+
+
+        return torch.as_tensor(batch_perturbed)
+    
+    
+    def schedule_noise_by_epoch(self):
+        noise_frac = self.current_epoch/10
+        return 0.0 + noise_frac

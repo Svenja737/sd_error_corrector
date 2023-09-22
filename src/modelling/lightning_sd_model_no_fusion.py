@@ -6,7 +6,7 @@ from transformers import RobertaModel, get_linear_schedule_with_warmup
 from torch.optim import AdamW
 from data_lib.classification_metrics import compute_metrics
 
-class SDECModule(L.LightningModule):
+class SDECModuleNoFusion(L.LightningModule):
     """
     Pytorch Lightning module for speaker diarization label re-classification.
 
@@ -74,7 +74,7 @@ class SDECModule(L.LightningModule):
         self.eval_batch_size = eval_batch_size
         self.dropout_rate = dropout_rate
         self.backbone = RobertaModel.from_pretrained(model_name_or_path)
-        self.feature_dim = 768 + num_labels
+        self.feature_dim = 768 
         self.dropout = torch.nn.Dropout(self.dropout_rate)
         self.model = torch.nn.Linear(self.feature_dim, self.num_labels)
         self.criterion = torch.nn.CrossEntropyLoss()
@@ -82,8 +82,8 @@ class SDECModule(L.LightningModule):
         self.test_step_outputs = []
         self.metric = compute_metrics
 
-    def forward(self, fused_labels_embeddings, labels=None):
-        logits = self.model(fused_labels_embeddings)
+    def forward(self, backbone_embeddings, labels=None):
+        logits = self.model(backbone_embeddings)
         loss = None
         if labels != None:
             loss = self.criterion(logits.view(-1, self.num_labels), labels.view(-1))
@@ -98,22 +98,18 @@ class SDECModule(L.LightningModule):
     def training_step(self, batch, batch_ids):
         input_ids = batch["input_ids"]
         attention_mask = batch["attention_mask"]
-        p_labels = batch["perturbed_labels"]
         labels = batch["labels"]
         backbone_embeddings = self.get_embeddings(input_ids, attention_mask)
-        fused_embeddings = self.reconcile_features_labels(backbone_embeddings, p_labels)
-        loss, logits = self(fused_embeddings, labels=labels)
+        loss, logits = self(backbone_embeddings, labels=labels)
         self.log("Train_Loss", loss, prog_bar=True, logger=True)
         return {"loss": loss, "predictions" : logits.argmax(dim=-1), "labels": labels}
 
     def validation_step(self, batch, batch_ids):
         input_ids = batch["input_ids"]
         attention_mask = batch["attention_mask"]
-        p_labels = batch["perturbed_labels"]
         labels = batch["labels"]
         backbone_embeddings = self.get_embeddings(input_ids, attention_mask)
-        fused_embeddings = self.reconcile_features_labels(backbone_embeddings, p_labels)
-        loss, logits = self(fused_embeddings, labels=labels)
+        loss, logits = self(backbone_embeddings, labels=labels)
         self.log("Val_Loss", loss, prog_bar=True, logger=True)
         self.validation_step_outputs.append({"val_loss": loss, "predictions" : logits.argmax(dim=-1), "labels": labels})
         return {"val_loss": loss, "predictions" : logits.argmax(dim=-1), "labels": labels}
@@ -121,11 +117,9 @@ class SDECModule(L.LightningModule):
     def test_step(self, batch, batch_ids):
         input_ids = batch["input_ids"]
         attention_mask = batch["attention_mask"]
-        p_labels = batch["perturbed_labels"]
         labels = batch["labels"]
         backbone_embeddings = self.get_embeddings(input_ids, attention_mask)
-        fused_embeddings = self.reconcile_features_labels(backbone_embeddings, p_labels)
-        logits = self(fused_embeddings)[1]
+        logits = self(backbone_embeddings)[1]
         self.test_step_outputs.append({"predictions" : logits.argmax(dim=-1), "labels": labels})
         return {"predictions" : logits.argmax(dim=-1), "labels": labels}
 
@@ -189,6 +183,3 @@ class SDECModule(L.LightningModule):
                             for prediction, label in zip(predictions, labels)]
 
         return true_labels, true_predictions
-
-    def reconcile_features_labels(self, backbone_embeddings, p_labels):
-        return torch.cat((backbone_embeddings, p_labels), -1)

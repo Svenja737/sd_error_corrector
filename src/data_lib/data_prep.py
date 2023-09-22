@@ -10,11 +10,38 @@ from typing import List, Dict
 # # # UTILS FOR SWICHBOARD CORPUS # # #
 
 class SwitchboardPreprocessor:
+    """
+    Class containing methods for reading and preprocessing Switchboard annotated transcripts.
+
+    Attributes
+    ----------
+    label_noise: float
+        Level of perturbation of labels for feature combination during training.
+
+    Methods
+    -------
+    add_speakers_to_turns(raw_switchboard_corpus)
+
+    sort_and_align(switchboard_corpus)
+
+    divide_sessions_into_chunks(switchboard_dataset, inference=False)
+
+    max_item(dict)
+
+    split_train_val_test(chunked_data)
+
+    perturb_labels(label_list)
+
+    format_for_classification(switchboard_corpus)
+    """
 
     def __init__(self, label_noise) -> None:
         self.label_noise = label_noise
 
     def add_speakers_to_turns(self, raw_switchboard_corpus):
+        """
+        Add a speaker label to each turn in the corpus, instead each session.
+        """
 
         updated_lines = []
 
@@ -29,7 +56,10 @@ class SwitchboardPreprocessor:
         raw_switchboard_corpus["full"] = updated_lines
         return raw_switchboard_corpus
     
-    def sort_and_align(self, switchboard_corpus):
+    def sort_and_align(self, switchboard_corpus) -> list:
+        """
+        Combine separate speakers of the same sessions into one instance.
+        """
 
         data = switchboard_corpus["full"]
         turns_by_session = []
@@ -67,10 +97,9 @@ class SwitchboardPreprocessor:
 
         return all_turns
     
-    def divide_sessions_into_chunks(self, switchboard_dataset, inference=False):
-        """swichboard sessions are long, so need to be divided into smaller sections so that they fit the 
-        max_length of roberta (512). Though technically, I could reset that max length to max session length, 
-        but hat would be very long.
+    def divide_sessions_into_chunks(self, switchboard_dataset, inference=False) -> list:
+        """
+        Divide Switchboard session into smaller chunks according to the default max length defined in the roberta configuration.
         """
         n_chunks = int(self.max_item(switchboard_dataset)/512) if int(self.max_item(switchboard_dataset)/512) != 1 else int(self.max_item(switchboard_dataset)/512) + 1
         chunked_data = []
@@ -90,14 +119,17 @@ class SwitchboardPreprocessor:
 
         return chunked_data
 
-    def max_item(self, dict):
+    def max_item(self, dict) -> int:
         max_len = 0
         for i in dict:
             if max_len < len(i["tokens"]):
                 max_len = len(i["tokens"])
         return max_len
     
-    def split_train_val_test(self, chunked_data):
+    def split_train_val_test(self, chunked_data) -> DatasetDict:
+        """
+        Split Switchboard into a train, eval and test set (80/5/15)
+        """
 
         train_len = int(0.8 * len(chunked_data))
         val_len = int(0.05 * len(chunked_data)) if int(0.05 * len(chunked_data)) != 0 else 1
@@ -114,20 +146,10 @@ class SwitchboardPreprocessor:
 
         return prepared_data
     
-    def perturb_labels(self, label_list):
 
-        labels = list(set(label_list))
-        id_labels = [(i, label) for i, label in enumerate(label_list)]
-        random.shuffle(id_labels)
-        num = int(self.label_noise*len(id_labels))
-        rand_labels = [(i[0], random.choice(labels)) for i in id_labels[:num]]
-        id_labels[:num] = rand_labels
-        id_labels.sort()
-        perturbed = [x[1] for x in id_labels]
-        
-        return perturbed
-
-    def format_for_classification(self, switchboard_corpus):
+    def format_for_classification(self, switchboard_corpus) -> DatasetDict:
+        """
+        """
 
         m_temp = self.add_speakers_to_turns(switchboard_corpus)
         s_temp = self.sort_and_align(m_temp)
@@ -153,7 +175,7 @@ class SwitchboardPreprocessor:
             session_dict["session_id"] = turn["session_id"]
             session_dict["tokens"] = tokens
             session_dict["labels"] = speaker_labels
-            session_dict["perturbed_labels"] = self.perturb_labels(speaker_labels)
+            session_dict["perturbed_labels"] = speaker_labels
             updated_data.append(session_dict)
 
         chunked = self.divide_sessions_into_chunks(updated_data)
