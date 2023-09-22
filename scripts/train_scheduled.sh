@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-#SBATCH --job-name=sdec_00
-#SBATCH --output=sdec_00.txt
+#SBATCH --job-name=sdec_scheduled_noise
+#SBATCH --output=sdec_scheduled_noise.txt
 #SBATCH --ntasks=1
 
 #SBATCH --mem=32000
