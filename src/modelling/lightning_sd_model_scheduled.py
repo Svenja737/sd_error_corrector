@@ -60,6 +60,7 @@ class SDECModuleWithSchedule(L.LightningModule):
                  num_labels=None, 
                  train_batch_size=8,
                  eval_batch_size=8,
+                 max_epochs=10,
                  learning_rate=1e-4,
                  adam_epsilon=1e-8,
                  warmup_steps=10,
@@ -106,7 +107,8 @@ class SDECModuleWithSchedule(L.LightningModule):
         fused_embeddings = self.reconcile_features_labels(backbone_embeddings, p_labels)
         loss, logits = self(fused_embeddings, labels=labels)
         self.log("Train_Loss", loss, prog_bar=True, logger=True)
-        return {"loss": loss, "predictions" : logits.argmax(dim=-1), "labels": labels}
+        self.log("Noise Level", noise, logger=True)
+        return {"loss": loss, "predictions" : logits.argmax(dim=-1), "labels": labels, "noise_level": noise}
 
     def validation_step(self, batch, batch_ids):
         input_ids = batch["input_ids"]
