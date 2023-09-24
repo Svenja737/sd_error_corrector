@@ -100,10 +100,11 @@ class SDECModuleWithSchedule(L.LightningModule):
     def training_step(self, batch, batch_ids):
         input_ids = batch["input_ids"]
         attention_mask = batch["attention_mask"]
-        noise = self.schedule_noise_by_epoch()
-        p_labels = self.perturb_labels(batch["perturbed_labels"], noise)
+        perturbed_labels = batch["perturbed_labels"]
         labels = batch["labels"]
-        backbone_embeddings = self.get_embeddings(input_ids, attention_mask)
+        noise = self.schedule_noise_by_epoch()
+        p_labels = self.perturb_labels(perturbed_labels, noise).to("cuda")
+        backbone_embeddings = self.get_embeddings(input_ids, attention_mask).to("cuda")
         fused_embeddings = self.reconcile_features_labels(backbone_embeddings, p_labels)
         loss, logits = self(fused_embeddings, labels=labels)
         self.log("Train_Loss", loss, prog_bar=True, logger=True)
@@ -201,7 +202,6 @@ class SDECModuleWithSchedule(L.LightningModule):
     def reconcile_features_labels(self, backbone_embeddings, p_labels):
         return torch.cat((backbone_embeddings, p_labels), -1)
     
-
     def perturb_labels(self, labels, noise_n):
 
         batch_perturbed = []
@@ -223,10 +223,9 @@ class SDECModuleWithSchedule(L.LightningModule):
                 perturbed.append([x[1] for x in id_labels])
             batch_perturbed.append(perturbed)
 
-
         return torch.as_tensor(batch_perturbed)
-    
     
     def schedule_noise_by_epoch(self):
         noise_frac = self.current_epoch/10
         return 0.0 + noise_frac
+

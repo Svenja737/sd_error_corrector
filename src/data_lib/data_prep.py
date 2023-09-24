@@ -21,18 +21,19 @@ class SwitchboardPreprocessor:
     Methods
     -------
     add_speakers_to_turns(raw_switchboard_corpus)
-
+        Adds speaker identities to separate speaking turns instead of just the session as a whole.
     sort_and_align(switchboard_corpus)
-
+        Turns per session are originally saved separately for A, B. Combine turns for each session using timestamps.
     divide_sessions_into_chunks(switchboard_dataset, inference=False)
-
+        Divide sessions into chunks of max. 512 tokens per chunk.
     max_item(dict)
-
+        Determine number of chunks by dividing the longest session (i.e. most tokens) by 512 (max tokens)
     split_train_val_test(chunked_data)
-
+        Splits data into train, val and test splits and returns it as a DatasetDict object.
     perturb_labels(label_list)
-
+        For a given percentage of labels, randomly swap for another label.
     format_for_classification(switchboard_corpus)
+        Execute preprocessing functions and filter out non-speech tokens.
     """
 
     def __init__(self, label_noise) -> None:
