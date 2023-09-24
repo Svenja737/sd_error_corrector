@@ -114,10 +114,11 @@ class SDECModuleWithSchedule(L.LightningModule):
     def validation_step(self, batch, batch_ids):
         input_ids = batch["input_ids"]
         attention_mask = batch["attention_mask"]
-        noise = self.schedule_noise_by_epoch()
-        p_labels = self.perturb_labels(batch["perturbed_labels"], noise)
+        perturbed_labels = batch["perturbed_labels"]
         labels = batch["labels"]
-        backbone_embeddings = self.get_embeddings(input_ids, attention_mask)
+        noise = self.schedule_noise_by_epoch()
+        p_labels = self.perturb_labels(perturbed_labels, noise).to("cuda")
+        backbone_embeddings = self.get_embeddings(input_ids, attention_mask).to("cuda")
         fused_embeddings = self.reconcile_features_labels(backbone_embeddings, p_labels)
         loss, logits = self(fused_embeddings, labels=labels)
         self.log("Val_Loss", loss, prog_bar=True, logger=True)
@@ -127,10 +128,11 @@ class SDECModuleWithSchedule(L.LightningModule):
     def test_step(self, batch, batch_ids):
         input_ids = batch["input_ids"]
         attention_mask = batch["attention_mask"]
-        noise = self.schedule_noise_by_epoch()
-        p_labels = self.perturb_labels(batch["perturbed_labels"], noise)
+        perturbed_labels = batch["perturbed_labels"]
         labels = batch["labels"]
-        backbone_embeddings = self.get_embeddings(input_ids, attention_mask)
+        noise = self.schedule_noise_by_epoch()
+        p_labels = self.perturb_labels(perturbed_labels, noise).to("cuda")
+        backbone_embeddings = self.get_embeddings(input_ids, attention_mask).to("cuda")
         fused_embeddings = self.reconcile_features_labels(backbone_embeddings, p_labels)
         logits = self(fused_embeddings)[1]
         self.test_step_outputs.append({"predictions" : logits.argmax(dim=-1), "labels": labels})
