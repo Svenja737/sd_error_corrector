@@ -1,11 +1,13 @@
 import torch 
 import random
 import pytorch_lightning as L
+import numpy as np
 from typing import Any, Dict, Optional
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 from transformers import RobertaModel, get_linear_schedule_with_warmup
 from torch.optim import AdamW
 from data_lib.classification_metrics import compute_metrics
+
 
 class SDECModuleWithSchedule(L.LightningModule):
     """
@@ -211,7 +213,7 @@ class SDECModuleWithSchedule(L.LightningModule):
             perturbed = []
             for seq_labels in batch:
                 label_list = [x for x in range(self.num_labels)]
-                id_labels = [(i, label) for i, label in enumerate(seq_labels)] #(i, [0, 1, 0])
+                id_labels = [(i, label) for i, label in enumerate(seq_labels)] 
                 random.shuffle(id_labels)
                 range_perturbed_labels = int(len(id_labels)*noise_n)
                 rand_labels = [(i[0], random.choice(label_list)) for i in id_labels[:range_perturbed_labels]]
@@ -228,6 +230,6 @@ class SDECModuleWithSchedule(L.LightningModule):
         return torch.as_tensor(batch_perturbed)
     
     def schedule_noise_by_epoch(self):
-        noise_frac = self.current_epoch/10
+        noise_frac = np.round(self.current_epoch/10, 2)
         return 0.0 + noise_frac
 
