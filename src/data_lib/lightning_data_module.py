@@ -1,11 +1,13 @@
 from pytorch_lightning.utilities.types import TRAIN_DATALOADERS
 import torch
+import datasets
 import pytorch_lightning as L
 from datasets import DatasetDict
 from typing import Dict, List
 from data_pipelines.datasets import DataPipeline
 from torch.utils.data import DataLoader
-from data_lib.data_prep import SwitchboardPreprocessor
+from data_lib.data_prep_switchboard import SwitchboardPreprocessor
+from data_lib.data_prep_santa_barbara import SantaBarbaraPreprocessor
 from transformers import AutoTokenizer, DataCollatorForTokenClassification
 
 
@@ -37,20 +39,21 @@ class SDDataModule(L.LightningDataModule):
     Methods
     -------
     setup(stage)
-
+        Prepare data, with possible stages "fit", "train", "validation", "test"
     train_dataloader()
-
+        Prepares training data.
     val_dataloader()
-
+        Prepares validation data. 
     test_dataloader()
-
+        Prepares test data. 
     align_labels_with_tokens(labels, word_ids, is_perturbed=False)
-
+        Add special label ignored by loss function to special and multi-word tokens.
     tokenize_and_align(examples)
-
+        Apply align_labels function to a data(sub)set
     tokenize_and_align_labels_inference(examples)
-        
+        Apply align_labels function to a single example.
     labels_to_vecs(batch_label_list)
+        Transform integer labels into one-hot encoded vectors (for feature combination).
     """
 
     TOKENIZERS_PARALLELISM = False
@@ -71,8 +74,8 @@ class SDDataModule(L.LightningDataModule):
                  label_noise,
                  prepare_data_per_node = False,
                  allow_zero_length_dataloader_with_multiple_devices=False,
-                 dataset_name = "switchboard",
-                 variant = "isip-aligned",
+                 dataset_name = None,
+                 santa_barbara_path = None
                  ) -> None:
         
         super().__init__()
@@ -85,16 +88,31 @@ class SDDataModule(L.LightningDataModule):
         self.prepare_data_per_node = prepare_data_per_node
         self.allow_zero_length_dataloader_with_multiple_devices = allow_zero_length_dataloader_with_multiple_devices
         self.dataset_name = dataset_name
-        self.variant = variant
+        self.santa_barbara_path = santa_barbara_path
         self.tokenizer = AutoTokenizer.from_pretrained(self.model_name_or_path, add_prefix_space=True)
 
 
     def setup(self, stage: str) -> DatasetDict:
-        dp = DataPipeline()
-        corpus = dp.load_dset(dataset=self.dataset_name, variant=self.variant)
 
-        switchboard_prep = SwitchboardPreprocessor(self.label_noise)
-        self.dataset = switchboard_prep.format_for_classification(corpus)
+        if self.dataset_name == "switchboard":
+            dp = DataPipeline()
+            corpus = dp.load_dset(dataset="switchboard", variant="isip-aligned")
+            switchboard_prep = SwitchboardPreprocessor(self.label_noise)
+            self.dataset = switchboard_prep.format_for_classification(corpus)
+
+        if self.dataset_name == "santa-barbara":
+            santa_b_prep = SantaBarbaraPreprocessor()
+            self.dataset = santa_b_prep.make_dataset_object(self.santa_barbara_path)
+
+        if self.dataset_name == "fused":
+            dp = DataPipeline()
+            corpus_one = dp.load_dset(dataset="switchboard", variant="isip-aligned")
+            switchboard_prep = SwitchboardPreprocessor(self.label_noise)
+            dataset_one = switchboard_prep.format_for_classification(corpus_one)
+            santa_b_prep = SantaBarbaraPreprocessor()
+            dataset_two = santa_b_prep.make_dataset_object(self.santa_barbara_path)
+            self.dataset = self.combine_datasets(dataset_one, dataset_two)
+
         for split in self.dataset.keys():
             self.dataset[split] = self.dataset[split].map(
                 self.tokenize_and_align_labels,
@@ -126,6 +144,12 @@ class SDDataModule(L.LightningDataModule):
     def align_labels_with_tokens(self, labels, word_ids, is_perturbed=False) -> List:
         """
         Given token level labels and word_ids, align labels with tokens. 
+
+        Parameters
+        ----------
+
+        Returns
+        -------
         """
         new_labels = []
         current_word = None
@@ -133,13 +157,13 @@ class SDDataModule(L.LightningDataModule):
             if word_id != current_word:
                 current_word = word_id
                 if is_perturbed==True:
-                    label = 0 if word_id is None else labels[word_id]
+                    label = -100 if word_id is None else labels[word_id]
                 else:
                     label = -100 if word_id is None else labels[word_id]
                 new_labels.append(label)
             elif word_id is None:
                 if is_perturbed==True:
-                    new_labels.append(0)
+                    new_labels.append(-100)
                 else:
                     new_labels.append(-100)
             elif word_id == current_word:
@@ -153,6 +177,12 @@ class SDDataModule(L.LightningDataModule):
     def tokenize_and_align_labels(self, examples) -> Dict:
         """
         Tokenize and align labels and perturbed labels with tokens.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
         """
         tokenized_inputs = self.tokenizer(examples["tokens"], truncation=True, padding="max_length", is_split_into_words=True, return_attention_mask=True, return_tensors="pt")
         all_labels = examples["labels"]
@@ -173,6 +203,12 @@ class SDDataModule(L.LightningDataModule):
     def tokenize_and_align_labels_inference(self, examples) -> Dict:
         """
         Tokenize and align labels (produced by STT engine) with tokens. 
+
+        Parameters
+        ----------
+
+        Returns
+        -------
         """
         tokenized_inputs = self.tokenizer(examples["tokens"], truncation=True, padding="max_length", is_split_into_words=True, return_attention_mask=True, return_tensors="pt")
         all_labels = examples["labels"]
@@ -190,6 +226,17 @@ class SDDataModule(L.LightningDataModule):
         """
         Turn a list of (batched) labels into a tensor of dimension (batchsize, seq_length, num_labels),
         where num_labels is the number of possible speakers in the dataset. 
+
+        Parameters
+        ----------
+        batch_label_list : list
+            A batched list of integer labels. 
+
+        Returns
+        -------
+        tensor
+            Tensor of labels, with the labels being vectors of dim 1 x num_labels.
+
         """
         label_vecs = []
         for label_list in batch_label_list:
@@ -199,3 +246,20 @@ class SDDataModule(L.LightningDataModule):
             label_vec = [0] * len(label_list)
             label_vecs.append([[label_vec[i]+1 if i == j else label_vec[i] for j in range(labels)] for i in label_list])
         return torch.as_tensor(label_vecs)
+    
+
+    def combine_datasets(self, dataset_a, dataset_b):
+        """
+        """
+        train_fused = datasets.concatenate_datasets([dataset_a["train"], dataset_b["train"]])
+        validation_fused = datasets.concatenate_datasets([dataset_a["validation"], dataset_b["validation"]])
+        test_fused = datasets.concatenate_datasets([dataset_a["test"], dataset_b["test"]])
+        fused = datasets.DatasetDict({
+            "train" : train_fused,
+            "validation" : validation_fused,
+            "test": test_fused
+        })
+        return fused 
+    
+
+    

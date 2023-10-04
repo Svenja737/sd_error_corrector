@@ -6,7 +6,7 @@ from typing import Any, Dict, Optional
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 from transformers import RobertaModel, get_linear_schedule_with_warmup
 from torch.optim import AdamW
-from data_lib.classification_metrics import compute_metrics
+from performance_tracking.classification_metrics import compute_metrics
 
 
 class SDECModuleWithSchedule(L.LightningModule):
@@ -105,8 +105,8 @@ class SDECModuleWithSchedule(L.LightningModule):
         perturbed_labels = batch["perturbed_labels"]
         labels = batch["labels"]
         noise = self.schedule_noise_by_epoch()
-        p_labels = self.perturb_labels(perturbed_labels, noise).to("cuda")
-        backbone_embeddings = self.get_embeddings(input_ids, attention_mask).to("cuda")
+        p_labels = self.perturb_labels(perturbed_labels, noise) 
+        backbone_embeddings = self.get_embeddings(input_ids, attention_mask)
         fused_embeddings = self.reconcile_features_labels(backbone_embeddings, p_labels)
         loss, logits = self(fused_embeddings, labels=labels)
         self.log("Train_Loss", loss, prog_bar=True, logger=True)
@@ -119,8 +119,8 @@ class SDECModuleWithSchedule(L.LightningModule):
         perturbed_labels = batch["perturbed_labels"]
         labels = batch["labels"]
         noise = self.schedule_noise_by_epoch()
-        p_labels = self.perturb_labels(perturbed_labels, noise).to("cuda")
-        backbone_embeddings = self.get_embeddings(input_ids, attention_mask).to("cuda")
+        p_labels = self.perturb_labels(perturbed_labels, noise)
+        backbone_embeddings = self.get_embeddings(input_ids, attention_mask)
         fused_embeddings = self.reconcile_features_labels(backbone_embeddings, p_labels)
         loss, logits = self(fused_embeddings, labels=labels)
         self.log("Val_Loss", loss, prog_bar=True, logger=True)
@@ -133,8 +133,8 @@ class SDECModuleWithSchedule(L.LightningModule):
         perturbed_labels = batch["perturbed_labels"]
         labels = batch["labels"]
         noise = self.schedule_noise_by_epoch()
-        p_labels = self.perturb_labels(perturbed_labels, noise).to("cuda")
-        backbone_embeddings = self.get_embeddings(input_ids, attention_mask).to("cuda")
+        p_labels = self.perturb_labels(perturbed_labels, noise)
+        backbone_embeddings = self.get_embeddings(input_ids, attention_mask)
         fused_embeddings = self.reconcile_features_labels(backbone_embeddings, p_labels)
         logits = self(fused_embeddings)[1]
         self.test_step_outputs.append({"predictions" : logits.argmax(dim=-1), "labels": labels})
@@ -206,30 +206,40 @@ class SDECModuleWithSchedule(L.LightningModule):
     def reconcile_features_labels(self, backbone_embeddings, p_labels):
         return torch.cat((backbone_embeddings, p_labels), -1)
     
-    def perturb_labels(self, labels, noise_n):
+    def perturb_labels(self, batched_labels, noise_n):
+        """
+        Parameters
+        ----------
+        labels : 
+        noise_n : float
 
+        Returns
+        -------
+        batch_perturbed : tensor
+        """
         batch_perturbed = []
-        for batch in torch.Tensor.tolist(labels):
-            perturbed = []
-            for seq_labels in batch:
-                label_list = [x for x in range(self.num_labels)]
-                id_labels = [(i, label) for i, label in enumerate(seq_labels)] 
-                random.shuffle(id_labels)
-                range_perturbed_labels = int(len(id_labels)*noise_n)
-                rand_labels = [(i[0], random.choice(label_list)) for i in id_labels[:range_perturbed_labels]]
-                new_rand_labels = []
-                for i, label in rand_labels:
-                    label_vec = [0] * self.num_labels
-                    label_vec[label] += 1
-                    new_rand_labels.append((i, label_vec))
-                id_labels[:range_perturbed_labels] = new_rand_labels
-                id_labels.sort()
-                perturbed.append([x[1] for x in id_labels])
-            batch_perturbed.append(perturbed)
-
-        return torch.as_tensor(batch_perturbed)
+        for batch in torch.Tensor.tolist(batched_labels): 
+            seq_length = len(batch)
+            range_perturbed_labels = int(seq_length*noise_n)
+            id_batch = [(i, label) for i, label in enumerate(batch)] 
+            random.shuffle(id_batch)
+            label_list = [x for x in range(self.num_labels)]
+            rand_labels = [(i[0], random.choice(label_list)) for i in id_batch[:range_perturbed_labels]]
+            init_rand_labels = [0]*self.num_labels
+            new_rand_labels = [(x[0], [y+1 if i==x[1] else y for i, y in enumerate(init_rand_labels)]) for x in rand_labels]
+            id_batch[:range_perturbed_labels] = new_rand_labels
+            id_batch.sort()
+            batch_perturbed.append([x[1] for x in id_batch])
+        
+        return torch.as_tensor(batch_perturbed, dtype=torch.int32, device="cuda")
     
     def schedule_noise_by_epoch(self):
+        """
+        Parameters
+        ----------
+
+        Returns
+        -------
+        """
         noise_frac = np.round(self.current_epoch/10, 2)
         return 0.0 + noise_frac
-

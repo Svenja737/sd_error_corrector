@@ -4,7 +4,8 @@ from typing import Any, Dict, Optional
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 from transformers import RobertaModel, get_linear_schedule_with_warmup
 from torch.optim import AdamW
-from data_lib.classification_metrics import compute_metrics
+from performance_tracking.classification_metrics import compute_metrics
+from performance_tracking.csv_writer import CSVWriter
 
 class SDECModule(L.LightningModule):
     """
@@ -81,6 +82,7 @@ class SDECModule(L.LightningModule):
         self.validation_step_outputs = []
         self.test_step_outputs = []
         self.metric = compute_metrics
+        self.csv_writer = CSVWriter()
 
     def forward(self, fused_labels_embeddings, labels=None):
         logits = self.model(fused_labels_embeddings)
@@ -90,6 +92,18 @@ class SDECModule(L.LightningModule):
         return loss, logits
         
     def get_embeddings(self, input_ids, attention_mask):
+        """
+        Extract contextual word embeddings with the backbone model. 
+
+        Parameters
+        ----------
+        input_ids
+        attention_mask
+
+        Returns
+        -------
+        sequence_outputs
+        """
         outputs = self.backbone(input_ids, attention_mask=attention_mask)
         sequence_outputs = outputs[0]
         sequence_outputs = self.dropout(sequence_outputs)
@@ -103,6 +117,7 @@ class SDECModule(L.LightningModule):
         backbone_embeddings = self.get_embeddings(input_ids, attention_mask)
         fused_embeddings = self.reconcile_features_labels(backbone_embeddings, p_labels)
         loss, logits = self(fused_embeddings, labels=labels)
+        print(f"Logits: {logits}")
         self.log("Train_Loss", loss, prog_bar=True, logger=True)
         return {"loss": loss, "predictions" : logits.argmax(dim=-1), "labels": labels}
 
@@ -127,6 +142,8 @@ class SDECModule(L.LightningModule):
         fused_embeddings = self.reconcile_features_labels(backbone_embeddings, p_labels)
         logits = self(fused_embeddings)[1]
         self.test_step_outputs.append({"predictions" : logits.argmax(dim=-1), "labels": labels})
+        tokens = self.csv_writer.convert_ids_to_tokens(input_ids)
+        self.csv_writer.update_state({"id" : batch_ids, "tokens" : "".join(tokens), "logits" : str(torch.squeeze(logits, 0).tolist()), "predictions" : str(logits.argmax(dim=-1).tolist())})
         return {"predictions" : logits.argmax(dim=-1), "labels": labels}
 
     def on_validation_epoch_end(self):
@@ -156,11 +173,12 @@ class SDECModule(L.LightningModule):
         predictions = torch.stack(predictions)
         true_labels, true_predictions = self.postprocess(predictions, labels)
         self.log_dict(self.metric(true_labels, true_predictions), logger=True)
+        self.csv_writer.write_csv()
+        self.csv_writer.clear_state()
         self.test_step_outputs.clear()
         return {"metrics" : self.metric(true_labels, true_predictions)}
 
     def configure_optimizers(self) -> Any:
-        """Prepare optimizer and schedule (linear warmup and decay)"""
         model = self.model
         no_decay = ["bias", "LayerNorm.weight"]
         optimizer_grouped_parameters = [
@@ -184,6 +202,19 @@ class SDECModule(L.LightningModule):
         return [optimizer], [scheduler]
 
     def postprocess(self, predictions, labels):
+        """
+        Remove labels to be ignored in computing metrics (labels of special tokens).
+
+        Parameters
+        ----------
+        predictions
+        labels
+
+        Returns
+        -------
+        true_labels
+        true_predictions
+        """
         true_labels = [[int(l.item()) for l in label if l != -100] for label in labels]
         true_predictions = [[int(p.item()) for (p, l) in zip(prediction, label) if l != -100]
                             for prediction, label in zip(predictions, labels)]
@@ -191,4 +222,18 @@ class SDECModule(L.LightningModule):
         return true_labels, true_predictions
 
     def reconcile_features_labels(self, backbone_embeddings, p_labels):
+        """
+        Combine backbone embeddings with predicted - potentially wrong - speaker labels.
+
+        Parameters
+        ----------
+        backbone_embeddings : tensor
+            Backbone word embeddings of size [BATCH_SIZE, MAX_SEQ_LENGTH, EMBEDDING SIZE].
+        p_labels : tensor
+            (Noisy) speaker labels of size [BATCH_SIZE, MAX_SEQ_LENGTH, NUM LABELS]
+        Returns
+        -------
+        torch.cat((backbone_embeddings, p_labels), -1) : tensor
+            Concatenated word embeddings and labels. 
+        """
         return torch.cat((backbone_embeddings, p_labels), -1)

@@ -10,7 +10,7 @@ def main():
 
     wandb.login(anonymous="allow", key="fa9a8ca94055c30f4a506593d5ed4d3a3cad70f2")
     sdec = SDECPipeline()
-    sdec.train_model_scheduled("roberta-base", 3, label_noise=0.0)
+    sdec.train_model("roberta-base", 11, label_noise=0.0, dataset_name="fused", santa_barbara_path="/home/sfilthaut/sdec_revamped/SBCorpus/TRN")
 
 if __name__ == "__main__":
     main()

@@ -14,6 +14,7 @@ def compute_metrics(labels, preds):
     F1 = []
 
     for l, p in list(zip(labels, preds)):
+        print(l, p)
         accuracy.append(acc.compute(predictions=p, references=l))
         precision.append(prec.compute(predictions=p, references=l, average="macro"))
         recall.append(rec.compute(predictions=p, references=l, average="macro"))

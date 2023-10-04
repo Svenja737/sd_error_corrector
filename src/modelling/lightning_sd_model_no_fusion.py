@@ -4,7 +4,7 @@ from typing import Any, Dict, Optional
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 from transformers import RobertaModel, get_linear_schedule_with_warmup
 from torch.optim import AdamW
-from data_lib.classification_metrics import compute_metrics
+from performance_tracking.classification_metrics import compute_metrics
 
 class SDECModuleNoFusion(L.LightningModule):
     """

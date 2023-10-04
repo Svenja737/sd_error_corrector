@@ -10,7 +10,8 @@ def main():
 
     wandb.login(anonymous="allow", key="fa9a8ca94055c30f4a506593d5ed4d3a3cad70f2")
     sdec = SDECPipeline()
-    sdec.train_model("roberta-base", 3, label_noise=0.0)
+    sdec.test_switchboard("roberta-base", "/home/sfilthaut/sdec_revamped/sdec_revamped/models/epoch=49-step=60950.ckpt", 3, label_noise=0.0)
+    #sdec.test_switchboard("roberta-base", "/home/sfilthaut/sdec_revamped/sdec_revamped/models/epoch=12-step=15847.ckpt", 3, label_noise=0.0)
 
 if __name__ == "__main__":
     main()

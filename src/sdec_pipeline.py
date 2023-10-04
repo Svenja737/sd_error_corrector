@@ -7,7 +7,7 @@ from modelling.lightning_sd_model_no_fusion import SDECModuleNoFusion
 from modelling.lightning_sd_model_scheduled import SDECModuleWithSchedule
 from data_lib.lightning_data_module import SDDataModule
 from pytorch_lightning.loggers import WandbLogger
-from data_lib.data_prep import SwitchboardPreprocessor
+from data_lib.data_prep_switchboard import SwitchboardPreprocessor
 from transcription_tools.transcribe_audio import transcribe
 from transcription_tools.utils_watson import read_watson, load_labels, save_as_txt
 
@@ -33,7 +33,7 @@ class SDECPipeline:
 
     # # # FUNCTIONS FOR MODEL TRAINING AND TESTING # # # 
 
-    def train_model(self, model_name_or_path, num_labels, label_noise) -> None:
+    def train_model(self, model_name_or_path, num_labels, label_noise, dataset_name, santa_barbara_path) -> None:
         """
         Trains a speaker diarization label correction model.
 
@@ -53,7 +53,9 @@ class SDECPipeline:
             eval_batch_size=8,
             num_labels=num_labels,
             num_workers=4,
-            label_noise=label_noise
+            label_noise=label_noise,
+            dataset_name=dataset_name,
+            santa_barbara_path=santa_barbara_path
             )
         
         sdec_model = SDECModule(
@@ -123,7 +125,7 @@ class SDECPipeline:
 
         trainer.fit(sdec_model, train_dataloaders=sdec_datamodule.train_dataloader(), val_dataloaders=sdec_datamodule.val_dataloader())
 
-    def train_model_scheduled(self, model_name_or_path, num_labels, label_noise) -> None:
+    def train_model_scheduled(self, model_name_or_path, num_labels, label_noise, max_epochs, dataset_name=None, santa_barbara_path=None) -> None:
         """
         Trains a speaker diarization label correction model.
 
@@ -143,14 +145,17 @@ class SDECPipeline:
             eval_batch_size=8,
             num_labels=num_labels,
             num_workers=4,
-            label_noise=label_noise
+            label_noise=label_noise,
+            dataset_name=dataset_name,
+            santa_barbara_path=santa_barbara_path
             )
         
         sdec_model = SDECModuleWithSchedule(
             model_name_or_path,
             num_labels=num_labels,
             train_batch_size=8,
-            eval_batch_size=8
+            eval_batch_size=8,
+            max_epochs=max_epochs
         )
 
         sdec_datamodule.setup("fit")
@@ -170,20 +175,24 @@ class SDECPipeline:
 
     def test_switchboard(self, model_name_or_path, checkpoint, num_labels, label_noise) -> None:
         """
-        Evaluated a speaker diarization label correction model on the Switchboard dataset (test split).
+        Evaluates a speaker diarization label correction model on the Switchboard dataset (test split).
 
         Parameters
         ----------
         model_name_or_path: str
+            Name of a model used as the backbone (supported: roberta).
         checkpoint: str
+            Path to a model checkpoint.
+        inputs: dict
+            Dictionary with tokens and labels.
         num_labels: int
-        label_noise: float
+            Number of possible labels in input data (default: 3).
         """
 
         sdec_datamodule = SDDataModule(
             model_name_or_path,
-            train_batch_size=8,
-            eval_batch_size=8,
+            train_batch_size=1,
+            eval_batch_size=1,
             num_labels=num_labels,
             num_workers=4,
             label_noise=label_noise
@@ -193,8 +202,8 @@ class SDECPipeline:
             checkpoint,
             map_location=torch.device('cpu'),
             num_labels=num_labels,
-            train_batch_size=8,
-            eval_batch_size=8
+            train_batch_size=1,
+            eval_batch_size=1
         )
 
         sdec_datamodule.setup("test")
@@ -213,18 +222,23 @@ class SDECPipeline:
 
     def inference(self, model_name_or_path, checkpoint, inputs, num_labels) -> list:
         """
-        Trains a speaker diarization label correction model.
+        Performs inference on a single data instance.
 
         Parameters
         ----------
         model_name_or_path: str
+            Name of a model used as the backbone (supported: roberta).
         checkpoint: str
+            Path to a model checkpoint.
         inputs: dict
+            Dictionary with tokens and labels.
         num_labels: int
+            Number of possible labels in input data (default: 3).
 
         Returns
         -------
         preds: list
+            List of label predictions for each input token.
         """
         sdec_datamodule = SDDataModule(
             model_name_or_path,
@@ -269,6 +283,18 @@ class SDECPipeline:
     def score(self, preds, labels) -> float:
         """
         Calculate accuracy of speaker labels predictions compared to reference labels. 
+
+        Parameters
+        ----------
+        preds : tensor
+            Tensor of predicted labels.
+        labels : tensor
+            Tensor of reference labels.
+
+        Returns
+        -------
+        count/total : float
+            Accuracy score derived from the fraction of correct predictions over all labels.
         """
         count = 0
         total = preds[0].squeeze().size()[0]

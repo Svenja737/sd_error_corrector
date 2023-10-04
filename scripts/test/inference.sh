@@ -1,0 +1,1 @@
+python3 inference.py > ../audio_samples/transcribed/q2ec7.json

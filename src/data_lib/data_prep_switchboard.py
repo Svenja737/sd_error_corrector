@@ -1,5 +1,4 @@
 import random
-import torch
 import data_pipelines.datasets as dp
 import more_itertools as mit
 import regex as re
@@ -36,12 +35,18 @@ class SwitchboardPreprocessor:
         Execute preprocessing functions and filter out non-speech tokens.
     """
 
-    def __init__(self, label_noise) -> None:
+    def __init__(self, label_noise=0.0) -> None:
         self.label_noise = label_noise
 
     def add_speakers_to_turns(self, raw_switchboard_corpus):
         """
         Add a speaker label to each turn in the corpus, instead each session.
+        
+        Parameters
+        ----------
+
+        Returns
+        -------
         """
 
         updated_lines = []
@@ -60,6 +65,12 @@ class SwitchboardPreprocessor:
     def sort_and_align(self, switchboard_corpus) -> list:
         """
         Combine separate speakers of the same sessions into one instance.
+        
+        Parameters
+        ----------
+
+        Returns
+        -------
         """
 
         data = switchboard_corpus["full"]
@@ -101,6 +112,12 @@ class SwitchboardPreprocessor:
     def divide_sessions_into_chunks(self, switchboard_dataset, inference=False) -> list:
         """
         Divide Switchboard session into smaller chunks according to the default max length defined in the roberta configuration.
+        
+        Parameters
+        ----------
+
+        Returns
+        -------
         """
         n_chunks = int(self.max_item(switchboard_dataset)/512) if int(self.max_item(switchboard_dataset)/512) != 1 else int(self.max_item(switchboard_dataset)/512) + 1
         chunked_data = []
@@ -130,6 +147,12 @@ class SwitchboardPreprocessor:
     def split_train_val_test(self, chunked_data) -> DatasetDict:
         """
         Split Switchboard into a train, eval and test set (80/5/15)
+
+        Parameters
+        ----------
+
+        Returns
+        -------
         """
 
         train_len = int(0.8 * len(chunked_data))
@@ -150,6 +173,13 @@ class SwitchboardPreprocessor:
 
     def format_for_classification(self, switchboard_corpus) -> DatasetDict:
         """
+        Run functions for preparing switchboard data. Removes bracketed paralinguistic annotations.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
         """
 
         m_temp = self.add_speakers_to_turns(switchboard_corpus)
