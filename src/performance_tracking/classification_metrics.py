@@ -14,11 +14,10 @@ def compute_metrics(labels, preds):
     F1 = []
 
     for l, p in list(zip(labels, preds)):
-        print(l, p)
         accuracy.append(acc.compute(predictions=p, references=l))
-        precision.append(prec.compute(predictions=p, references=l, average="macro"))
-        recall.append(rec.compute(predictions=p, references=l, average="macro"))
-        F1.append(f1.compute(predictions=p, references=l, average="macro"))
+        precision.append(prec.compute(predictions=p, references=l, average="macro", labels=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], zero_division=0.0))
+        recall.append(rec.compute(predictions=p, references=l, average="macro", labels=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], zero_division=0.0))
+        F1.append(f1.compute(predictions=p, references=l, average="macro", labels=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]))
     
     return {
         "Accuracy" : sum([x["accuracy"]for x in accuracy])/len(labels),

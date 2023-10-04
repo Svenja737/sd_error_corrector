@@ -106,6 +106,7 @@ class SDECModuleWithSchedule(L.LightningModule):
         labels = batch["labels"]
         noise = self.schedule_noise_by_epoch()
         p_labels = self.perturb_labels(perturbed_labels, noise) 
+        print(f"Perturbed Labels: {p_labels}")
         backbone_embeddings = self.get_embeddings(input_ids, attention_mask)
         fused_embeddings = self.reconcile_features_labels(backbone_embeddings, p_labels)
         loss, logits = self(fused_embeddings, labels=labels)
@@ -118,8 +119,9 @@ class SDECModuleWithSchedule(L.LightningModule):
         attention_mask = batch["attention_mask"]
         perturbed_labels = batch["perturbed_labels"]
         labels = batch["labels"]
-        noise = self.schedule_noise_by_epoch()
+        noise = 0.0
         p_labels = self.perturb_labels(perturbed_labels, noise)
+        print(f"Perturbed Labels: {p_labels}")
         backbone_embeddings = self.get_embeddings(input_ids, attention_mask)
         fused_embeddings = self.reconcile_features_labels(backbone_embeddings, p_labels)
         loss, logits = self(fused_embeddings, labels=labels)
@@ -132,7 +134,7 @@ class SDECModuleWithSchedule(L.LightningModule):
         attention_mask = batch["attention_mask"]
         perturbed_labels = batch["perturbed_labels"]
         labels = batch["labels"]
-        noise = self.schedule_noise_by_epoch()
+        noise = 0.0
         p_labels = self.perturb_labels(perturbed_labels, noise)
         backbone_embeddings = self.get_embeddings(input_ids, attention_mask)
         fused_embeddings = self.reconcile_features_labels(backbone_embeddings, p_labels)
@@ -231,7 +233,7 @@ class SDECModuleWithSchedule(L.LightningModule):
             id_batch.sort()
             batch_perturbed.append([x[1] for x in id_batch])
         
-        return torch.as_tensor(batch_perturbed, dtype=torch.int32, device="cuda")
+        return torch.as_tensor(batch_perturbed, dtype=torch.int32) # , device="cuda")
     
     def schedule_noise_by_epoch(self):
         """
@@ -241,5 +243,5 @@ class SDECModuleWithSchedule(L.LightningModule):
         Returns
         -------
         """
-        noise_frac = np.round(self.current_epoch/10, 2)
+        noise_frac = np.round(self.current_epoch/20, 2)
         return 0.0 + noise_frac
