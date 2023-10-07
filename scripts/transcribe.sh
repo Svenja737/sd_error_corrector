@@ -1,0 +1,1 @@
+python3 transcribe_file.py > gkiki.json

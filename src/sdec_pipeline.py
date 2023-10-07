@@ -3,8 +3,6 @@ import pytorch_lightning as L
 from transformers import AutoTokenizer
 from typing import Dict
 from modelling.lightning_sd_model import SDECModule
-from modelling.lightning_sd_model_no_fusion import SDECModuleNoFusion
-from modelling.lightning_sd_model_scheduled import SDECModuleWithSchedule
 from data_lib.lightning_data_module import SDDataModule
 from pytorch_lightning.loggers import WandbLogger
 from data_lib.data_prep_switchboard import SwitchboardPreprocessor
@@ -33,7 +31,13 @@ class SDECPipeline:
 
     # # # FUNCTIONS FOR MODEL TRAINING AND TESTING # # # 
 
-    def train_model(self, model_name_or_path, num_labels, label_noise, dataset_name, santa_barbara_path) -> None:
+    def train_model(self, 
+                    model_name_or_path: str, 
+                    num_labels: int, 
+                    label_noise: float, 
+                    dataset_type: str, 
+                    training_mode: str=None,
+                    santa_barbara_path: str=None) -> None:
         """
         Trains a speaker diarization label correction model.
 
@@ -49,113 +53,18 @@ class SDECPipeline:
 
         sdec_datamodule = SDDataModule(
             model_name_or_path,
-            train_batch_size=8,
-            eval_batch_size=8,
-            num_labels=num_labels,
-            num_workers=4,
-            label_noise=label_noise,
-            dataset_name=dataset_name,
+            dataset_type,
+            num_labels,
             santa_barbara_path=santa_barbara_path
             )
         
         sdec_model = SDECModule(
             model_name_or_path,
+            training_mode=training_mode,
             num_labels=num_labels,
-            train_batch_size=8,
-            eval_batch_size=8
-        )
-
-        sdec_datamodule.setup("fit")
-        sdec_datamodule.setup("validate")
-
-        logger = WandbLogger(save_dir=f"wandb_logging/{model_name_or_path}")
-
-        trainer = L.Trainer(
-            devices=1,
-            log_every_n_steps=30,
-            enable_progress_bar=True,
-            enable_checkpointing=True,
-            logger=logger
-        )
-
-        trainer.fit(sdec_model, train_dataloaders=sdec_datamodule.train_dataloader(), val_dataloaders=sdec_datamodule.val_dataloader())
-
-    def train_model_no_fusion(self, model_name_or_path, num_labels, label_noise) -> None:
-        """
-        Trains a speaker diarization label correction model.
-
-        Parameters
-        ----------
-        model_name_or_path: str
-            Valid name of a huggingface model or path to a saved model. 
-        num_labels: int
-            Number of speakers in the training data.
-        label_noise: float
-            Amount of perturbation on the labels fused with input tokens.
-        """
-
-        sdec_datamodule = SDDataModule(
-            model_name_or_path,
-            train_batch_size=8,
-            eval_batch_size=8,
-            num_labels=num_labels,
-            num_workers=4,
-            label_noise=label_noise
-            )
-        
-        sdec_model = SDECModuleNoFusion(
-            model_name_or_path,
-            num_labels=num_labels,
-            train_batch_size=8,
-            eval_batch_size=8
-        )
-
-        sdec_datamodule.setup("fit")
-        sdec_datamodule.setup("validate")
-
-        logger = WandbLogger(save_dir=f"wandb_logging/{model_name_or_path}")
-
-        trainer = L.Trainer(
-            devices=1,
-            log_every_n_steps=30,
-            enable_progress_bar=True,
-            enable_checkpointing=True,
-            logger=logger
-        )
-
-        trainer.fit(sdec_model, train_dataloaders=sdec_datamodule.train_dataloader(), val_dataloaders=sdec_datamodule.val_dataloader())
-
-    def train_model_scheduled(self, model_name_or_path, num_labels, label_noise, max_epochs, dataset_name=None, santa_barbara_path=None) -> None:
-        """
-        Trains a speaker diarization label correction model.
-
-        Parameters
-        ----------
-        model_name_or_path: str
-            Valid name of a huggingface model or path to a saved model. 
-        num_labels: int
-            Number of speakers in the training data.
-        label_noise: float
-            Amount of perturbation on the labels fused with input tokens.
-        """
-
-        sdec_datamodule = SDDataModule(
-            model_name_or_path,
-            train_batch_size=8,
-            eval_batch_size=8,
-            num_labels=num_labels,
-            num_workers=4,
             label_noise=label_noise,
-            dataset_name=dataset_name,
-            santa_barbara_path=santa_barbara_path
-            )
-        
-        sdec_model = SDECModuleWithSchedule(
-            model_name_or_path,
-            num_labels=num_labels,
             train_batch_size=8,
-            eval_batch_size=8,
-            max_epochs=max_epochs
+            eval_batch_size=8
         )
 
         sdec_datamodule.setup("fit")
@@ -173,7 +82,15 @@ class SDECPipeline:
 
         trainer.fit(sdec_model, train_dataloaders=sdec_datamodule.train_dataloader(), val_dataloaders=sdec_datamodule.val_dataloader())
 
-    def test_switchboard(self, model_name_or_path, checkpoint, num_labels, label_noise) -> None:
+    def test_model(self, 
+                   model_name_or_path, 
+                   num_labels,
+                   checkpoint,  
+                   dataset_type=None, 
+                   santa_barbara_path=None,
+                   write_csv=False,
+                   csv_save_path="results"
+                   ) -> None:
         """
         Evaluates a speaker diarization label correction model on the Switchboard dataset (test split).
 
@@ -195,7 +112,8 @@ class SDECPipeline:
             eval_batch_size=1,
             num_labels=num_labels,
             num_workers=4,
-            label_noise=label_noise
+            dataset_type=dataset_type,
+            santa_barbara_path=santa_barbara_path
             )
         
         sdec_model = SDECModule.load_from_checkpoint(
@@ -203,7 +121,9 @@ class SDECPipeline:
             map_location=torch.device('cpu'),
             num_labels=num_labels,
             train_batch_size=1,
-            eval_batch_size=1
+            eval_batch_size=1,
+            write_csv=write_csv, 
+            csv_save_path=csv_save_path
         )
 
         sdec_datamodule.setup("test")
@@ -220,7 +140,11 @@ class SDECPipeline:
 
         trainer.test(sdec_model, dataloaders=sdec_datamodule.test_dataloader())
 
-    def inference(self, model_name_or_path, checkpoint, inputs, num_labels) -> list:
+    def inference(self, 
+                  model_name_or_path: str, 
+                  checkpoint: str, 
+                  inputs: dict, 
+                  num_labels: int) -> list:
         """
         Performs inference on a single data instance.
 
@@ -303,7 +227,6 @@ class SDECPipeline:
                 count += 1
 
         return count/total
-
 
     # # # FUNCTIONS FOR TRANSCRIPTION # # # 
 

@@ -1,5 +1,6 @@
 from typing import Dict
 import json
+import argparse
 
 
 def read_watson(watson_results_file) -> Dict:
@@ -9,6 +10,7 @@ def read_watson(watson_results_file) -> Dict:
     ----------
     watson_results_file: str
         Path to a json file with IBM Watson STT results. should have the fields "results" and "speaker_labels".
+
     Returns
     -------
     dict
@@ -50,6 +52,7 @@ def load_labels(reference_text_file) -> list:
     ---------
     reference_text_file: list
         text file with tokens and speaker labels (separated by tab)
+
     Returns
     -------
     labels : list
@@ -72,6 +75,7 @@ def load_tokens(reference_text_file) -> list:
     ---------
     reference_text_file: list
         text file with tokens and speaker labels (separated by tab)
+
     Returns
     -------
     tokens : list

@@ -35,8 +35,8 @@ class SwitchboardPreprocessor:
         Execute preprocessing functions and filter out non-speech tokens.
     """
 
-    def __init__(self, label_noise=0.0) -> None:
-        self.label_noise = label_noise
+    def __init__(self) -> None:
+        pass
 
     def add_speakers_to_turns(self, raw_switchboard_corpus):
         """

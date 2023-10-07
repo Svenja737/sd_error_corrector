@@ -14,7 +14,7 @@ def main():
     corr_labels = [0 if label==3 else label for label in data["labels"]]
     watson_labels = torch.as_tensor([corr_labels])
     data["labels"] = corr_labels
-    predictions = sdcp.inference("roberta-base", "models/epoch=20-step=25599.ckpt", data, 3)
+    predictions = sdcp.inference("roberta-base", "models/epoch=20-step=25599.ckpt", data, 11)
     print(f"Watson labels: {watson_labels}")
     print(f"Model Predictions: {predictions}")
     score_prediction = sdcp.score(predictions, gold_labels)

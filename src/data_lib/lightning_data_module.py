@@ -31,7 +31,7 @@ class SDDataModule(L.LightningDataModule):
         Level of reference label perturbation.
     prepare_data_per_node: bool
     allow_zero_length_dataloader_with_multiple_devices: bool
-    dataset_name: str
+    dataset_type: str
         Name of dataset to download (default: "switchboard")
     variant: str 
         Variant of downloaded dataset (default: "isip-aligned")
@@ -60,22 +60,21 @@ class SDDataModule(L.LightningDataModule):
 
     loader_columns = [
         "input_ids", 
-        "perturbed_labels",
         "attention_mask",
+        "perturbed_labels",
         "labels"
     ]
 
     def __init__(self,
-                 model_name_or_path,
-                 train_batch_size,
-                 eval_batch_size,
-                 num_labels,
-                 num_workers,
-                 label_noise,
-                 prepare_data_per_node = False,
-                 allow_zero_length_dataloader_with_multiple_devices=False,
-                 dataset_name = None,
-                 santa_barbara_path = None
+                 model_name_or_path: str,
+                 dataset_type: str,
+                 num_labels: int,
+                 train_batch_size: int=8,
+                 eval_batch_size: int=8,
+                 num_workers: int=4,
+                 prepare_data_per_node: bool=False,
+                 allow_zero_length_dataloader_with_multiple_devices: bool=False,
+                 santa_barbara_path: str=None
                  ) -> None:
         
         super().__init__()
@@ -84,30 +83,31 @@ class SDDataModule(L.LightningDataModule):
         self.eval_batch_size = eval_batch_size
         self.num_labels = num_labels
         self.num_workers = num_workers
-        self.label_noise = label_noise
         self.prepare_data_per_node = prepare_data_per_node
         self.allow_zero_length_dataloader_with_multiple_devices = allow_zero_length_dataloader_with_multiple_devices
-        self.dataset_name = dataset_name
+        self.dataset_type = dataset_type
         self.santa_barbara_path = santa_barbara_path
         self.tokenizer = AutoTokenizer.from_pretrained(self.model_name_or_path, add_prefix_space=True)
 
 
     def setup(self, stage: str) -> DatasetDict:
 
-        if self.dataset_name == "switchboard":
+        assert self.dataset_type in ["switchboard", "santa_barbara", "fused"], "Choose valid dataset variant from ['switchboard', 'santa_barbara', 'fused']"
+
+        if self.dataset_type == "switchboard":
             dp = DataPipeline()
             corpus = dp.load_dset(dataset="switchboard", variant="isip-aligned")
-            switchboard_prep = SwitchboardPreprocessor(self.label_noise)
+            switchboard_prep = SwitchboardPreprocessor()
             self.dataset = switchboard_prep.format_for_classification(corpus)
 
-        if self.dataset_name == "santa-barbara":
+        if self.dataset_type == "santa_barbara":
             santa_b_prep = SantaBarbaraPreprocessor()
             self.dataset = santa_b_prep.make_dataset_object(self.santa_barbara_path)
 
-        if self.dataset_name == "fused":
+        if self.dataset_type == "fused":
             dp = DataPipeline()
             corpus_one = dp.load_dset(dataset="switchboard", variant="isip-aligned")
-            switchboard_prep = SwitchboardPreprocessor(self.label_noise)
+            switchboard_prep = SwitchboardPreprocessor()
             dataset_one = switchboard_prep.format_for_classification(corpus_one)
             santa_b_prep = SantaBarbaraPreprocessor()
             dataset_two = santa_b_prep.make_dataset_object(self.santa_barbara_path)

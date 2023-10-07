@@ -1,5 +1,7 @@
 import torch 
+import random
 import pytorch_lightning as L
+import numpy as np
 from typing import Any, Dict, Optional
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 from transformers import RobertaModel, get_linear_schedule_with_warmup
@@ -56,33 +58,48 @@ class SDECModule(L.LightningModule):
     """
 
     def __init__(self, 
-                 model_name_or_path,
-                 num_labels=None, 
-                 train_batch_size=8,
-                 eval_batch_size=8,
-                 learning_rate=1e-4,
-                 adam_epsilon=1e-8,
-                 warmup_steps=10,
-                 weight_decay=0.0,
-                 dropout_rate=0.1,
+                 model_name_or_path: str,
+                 num_labels: int, 
+                 training_mode: str=None,
+                 label_noise: float=None,
+                 test_label_noise: float=0.0,
+                 train_batch_size: int=8,
+                 eval_batch_size: int=8,
+                 learning_rate: float=1e-4,
+                 adam_epsilon: float=1e-8,
+                 warmup_steps: int=10,
+                 weight_decay: float=0.0,
+                 dropout_rate: float=0.1,
+                 write_csv: bool=False,
+                 csv_save_path: str=None
                  ) -> None:
         
         super().__init__()
         self.save_hyperparameters()
         self.model_name_or_path = model_name_or_path
+        self.training_mode = training_mode
         self.num_labels = num_labels
+        self.label_noise = label_noise
+        self.test_label_noise = test_label_noise
         self.train_batch_size = train_batch_size
         self.eval_batch_size = eval_batch_size
         self.dropout_rate = dropout_rate
         self.backbone = RobertaModel.from_pretrained(model_name_or_path)
-        self.feature_dim = 768 + num_labels
+        print(self.training_mode)
+        if self.training_mode == "no_noise":
+            self.feature_dim = 768 
+        else:
+            self.feature_dim = 768 + num_labels
         self.dropout = torch.nn.Dropout(self.dropout_rate)
         self.model = torch.nn.Linear(self.feature_dim, self.num_labels)
         self.criterion = torch.nn.CrossEntropyLoss()
         self.validation_step_outputs = []
         self.test_step_outputs = []
         self.metric = compute_metrics
-        self.csv_writer = CSVWriter()
+        self.csv_save_path = csv_save_path
+        self.csv_writer = CSVWriter(self.csv_save_path)
+        self.write_csv = write_csv
+        
 
     def forward(self, fused_labels_embeddings, labels=None):
         logits = self.model(fused_labels_embeddings)
@@ -115,7 +132,20 @@ class SDECModule(L.LightningModule):
         p_labels = batch["perturbed_labels"]
         labels = batch["labels"]
         backbone_embeddings = self.get_embeddings(input_ids, attention_mask)
-        fused_embeddings = self.reconcile_features_labels(backbone_embeddings, p_labels)
+
+        assert self.training_mode in ["fixed_noise", "scheduled_noise", "no_noise"], "Not a valid option for training!"
+
+        if self.training_mode == "fixed_noise":
+            assert self.label_noise != None, "Set a value for label_noise!"
+            perturbed_labels = self.perturb_labels(p_labels, self.label_noise)
+            fused_embeddings = self.reconcile_features_labels(backbone_embeddings, perturbed_labels)
+        elif self.training_mode == "scheduled_noise":
+            noise = self.schedule_noise_by_epoch()
+            perturbed_labels = self.perturb_labels(p_labels, noise)
+            fused_embeddings = self.reconcile_features_labels(backbone_embeddings, perturbed_labels)
+        elif self.training_mode == "no_noise":
+            fused_embeddings = backbone_embeddings
+
         loss, logits = self(fused_embeddings, labels=labels)
         print(f"Logits: {logits}")
         self.log("Train_Loss", loss, prog_bar=True, logger=True)
@@ -127,7 +157,19 @@ class SDECModule(L.LightningModule):
         p_labels = batch["perturbed_labels"]
         labels = batch["labels"]
         backbone_embeddings = self.get_embeddings(input_ids, attention_mask)
-        fused_embeddings = self.reconcile_features_labels(backbone_embeddings, p_labels)
+        noise = 0.0
+
+        if self.training_mode == "fixed_noise":
+            assert self.label_noise != None, "Set a value for label_noise!"
+            perturbed_labels = self.perturb_labels(p_labels, self.label_noise)
+            fused_embeddings = self.reconcile_features_labels(backbone_embeddings, perturbed_labels)
+        elif self.training_mode == "scheduled_noise":
+            noise = self.schedule_noise_by_epoch()
+            perturbed_labels = self.perturb_labels(p_labels, noise)
+            fused_embeddings = self.reconcile_features_labels(backbone_embeddings, perturbed_labels)
+        elif self.training_mode == "no_noise":
+            fused_embeddings = backbone_embeddings
+
         loss, logits = self(fused_embeddings, labels=labels)
         self.log("Val_Loss", loss, prog_bar=True, logger=True)
         self.validation_step_outputs.append({"val_loss": loss, "predictions" : logits.argmax(dim=-1), "labels": labels})
@@ -139,11 +181,21 @@ class SDECModule(L.LightningModule):
         p_labels = batch["perturbed_labels"]
         labels = batch["labels"]
         backbone_embeddings = self.get_embeddings(input_ids, attention_mask)
-        fused_embeddings = self.reconcile_features_labels(backbone_embeddings, p_labels)
+        noise = self.test_label_noise
+        perturbed_labels = self.perturb_labels(p_labels, noise)
+        fused_embeddings = self.reconcile_features_labels(backbone_embeddings, perturbed_labels)
         logits = self(fused_embeddings)[1]
+
         self.test_step_outputs.append({"predictions" : logits.argmax(dim=-1), "labels": labels})
-        tokens = self.csv_writer.convert_ids_to_tokens(input_ids)
-        self.csv_writer.update_state({"id" : batch_ids, "tokens" : "".join(tokens), "logits" : str(torch.squeeze(logits, 0).tolist()), "predictions" : str(logits.argmax(dim=-1).tolist())})
+        if self.write_csv:
+            tokens = self.csv_writer.convert_ids_to_tokens(input_ids)
+            cleaned_preds, cleaned_labels = self.postprocess(logits.argmax(dim=-1), labels)
+            self.csv_writer.update_state({"id" : batch_ids, 
+                                          "tokens" : "".join(tokens), 
+                                          # "probability_per_label" : str([max(token_logits.tolist()) for token_logits in logits]), 
+                                          "predictions" : str(cleaned_preds[0]),
+                                          "labels" : str(cleaned_labels[0])})
+            
         return {"predictions" : logits.argmax(dim=-1), "labels": labels}
 
     def on_validation_epoch_end(self):
@@ -173,9 +225,10 @@ class SDECModule(L.LightningModule):
         predictions = torch.stack(predictions)
         true_labels, true_predictions = self.postprocess(predictions, labels)
         self.log_dict(self.metric(true_labels, true_predictions), logger=True)
-        self.csv_writer.write_csv()
-        self.csv_writer.clear_state()
-        self.test_step_outputs.clear()
+        if self.write_csv:
+            self.csv_writer.write_csv()
+            self.csv_writer.clear_state()
+            self.test_step_outputs.clear()
         return {"metrics" : self.metric(true_labels, true_predictions)}
 
     def configure_optimizers(self) -> Any:
@@ -237,3 +290,42 @@ class SDECModule(L.LightningModule):
             Concatenated word embeddings and labels. 
         """
         return torch.cat((backbone_embeddings, p_labels), -1)
+    
+    def perturb_labels(self, batched_labels, noise_n):
+        """
+        Parameters
+        ----------
+        labels : 
+        noise_n : float
+
+        Returns
+        -------
+        batch_perturbed : tensor
+        """
+        batch_perturbed = []
+        for batch in torch.Tensor.tolist(batched_labels): 
+            seq_length = len(batch)
+            range_perturbed_labels = int(seq_length*noise_n)
+            id_batch = [(i, label) for i, label in enumerate(batch)] 
+            random.shuffle(id_batch)
+            label_list = [x for x in range(self.num_labels)]
+            rand_labels = [(i[0], random.choice(label_list)) for i in id_batch[:range_perturbed_labels]]
+            init_rand_labels = [0]*self.num_labels
+            new_rand_labels = [(x[0], [y+1 if i==x[1] else y for i, y in enumerate(init_rand_labels)]) for x in rand_labels]
+            id_batch[:range_perturbed_labels] = new_rand_labels
+            id_batch.sort()
+            batch_perturbed.append([x[1] for x in id_batch])
+        
+        return torch.as_tensor(batch_perturbed, dtype=torch.int32)#, device="cuda")
+
+    def schedule_noise_by_epoch(self):
+        """
+        Parameters
+        ----------
+
+        Returns
+        -------
+        """
+        noise_frac = np.round(self.current_epoch/20, 2)
+        return 0.0 + noise_frac
+
