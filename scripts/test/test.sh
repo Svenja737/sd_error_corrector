@@ -12,4 +12,4 @@
 #SBATCH --qos=batch
 #SBATCH --gres=gpu
 
-python3 test.py "roberta-base" 11 "/home/students/filthaut/sdec_revamped/models/epoch=6-step=9030.ckpt" "fused" "fa9a8ca94055c30f4a506593d5ed4d3a3cad70f2" --santa_barbara_path "/home/students/filthaut/sdec_revamped/SBCorpus/TRN" --write_csv
+python3 test.py "roberta-base" 11 "/home/students/filthaut/sdec_revamped/models/epoch=6-step=9030.ckpt" "fused" "fa9a8ca94055c30f4a506593d5ed4d3a3cad70f2" --santa_barbara_path "/home/students/filthaut/sdec_revamped/data/SBCorpus/TRN" --write_csv
