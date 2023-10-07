@@ -316,7 +316,7 @@ class SDECModule(L.LightningModule):
             id_batch.sort()
             batch_perturbed.append([x[1] for x in id_batch])
         
-        return torch.as_tensor(batch_perturbed, dtype=torch.int32)#, device="cuda")
+        return torch.as_tensor(batch_perturbed, dtype=torch.int32, device="cuda")
 
     def schedule_noise_by_epoch(self):
         """
