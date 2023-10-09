@@ -108,7 +108,7 @@ class SwitchboardPreprocessor:
             all_turns.append(sorted_session)
 
         return all_turns
-    
+       
     def divide_sessions_into_chunks(self, switchboard_dataset, inference=False) -> list:
         """
         Divide Switchboard session into smaller chunks according to the default max length defined in the roberta configuration.
@@ -120,6 +120,11 @@ class SwitchboardPreprocessor:
         -------
         """
         n_chunks = int(self.max_item(switchboard_dataset)/512) if int(self.max_item(switchboard_dataset)/512) != 1 else int(self.max_item(switchboard_dataset)/512) + 1
+        if n_chunks == 0:
+            n_chunks = 1
+
+        print(n_chunks)
+
         chunked_data = []
         for i in switchboard_dataset:
             div_tokens = mit.divide(n_chunks, i["tokens"])
@@ -199,9 +204,9 @@ class SwitchboardPreprocessor:
                 for t in temp_tokens:
                     tokens.append(t)
                     if turn["participant"] == "A":
-                        speaker_labels.append(1)
+                        speaker_labels.append(0)
                     elif turn["participant"] == "B":
-                        speaker_labels.append(2)
+                        speaker_labels.append(1)
                 
             session_dict["session_id"] = turn["session_id"]
             session_dict["tokens"] = tokens

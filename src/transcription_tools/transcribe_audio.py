@@ -44,7 +44,7 @@ def transcribe(audio_path: str, auth_token: str):
         service.recognize_using_websocket(
             audio=audio_source,
             recognize_callback=my_recognize_callback,
-            model="en-US_Telephony",
+            model="en-US_Multimedia",
             content_type='audio/wav',
             max_alternatives=1,
             speaker_labels=True,

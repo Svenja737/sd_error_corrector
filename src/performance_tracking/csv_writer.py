@@ -38,11 +38,8 @@ class CSVWriter:
 
         df = pd.DataFrame.from_records(self.state_list)
         print(df)
-        df.to_csv(self.output_path+"/results.csv", columns=field_names, sep=";", )
-        # with open(self.output_path+"/results.csv", "w", encoding="utf-8", newline="") as res_file:
-        #     writer = csv.DictWriter(res_file, fieldnames=field_names, delimiter=";")
-        #     writer.writeheader()
-        #     writer.writerows(self.state_list)
+        df.to_csv(self.output_path+"/test_results.csv", columns=field_names, sep=";")
+        
 
     def convert_ids_to_tokens(self, input_ids_batch):
         tokenizer = AutoTokenizer.from_pretrained("roberta-base")

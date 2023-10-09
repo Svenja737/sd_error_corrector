@@ -142,9 +142,11 @@ class SDECPipeline:
 
     def inference(self, 
                   model_name_or_path: str, 
-                  checkpoint: str, 
-                  inputs: dict, 
-                  num_labels: int) -> list:
+                  dataset_type: str,
+                  checkpoint: str,
+                  num_labels: int, 
+                  inputs: dict,
+                  noise: str=False) -> list:
         """
         Performs inference on a single data instance.
 
@@ -166,11 +168,11 @@ class SDECPipeline:
         """
         sdec_datamodule = SDDataModule(
             model_name_or_path,
+            dataset_type,
+            num_labels,
             train_batch_size=8,
             eval_batch_size=8,
-            num_labels=num_labels,
-            num_workers=4,
-            label_noise=0.0
+            num_workers=4
             )
         
         sdec_model = SDECModule.load_from_checkpoint(
@@ -178,10 +180,10 @@ class SDECPipeline:
             map_location=torch.device('cpu'),
             num_labels=num_labels,
             train_batch_size=8,
-            eval_batch_size=8
+            eval_batch_size=8,
         )
 
-        preprocessor = SwitchboardPreprocessor(label_noise=0.0)
+        preprocessor = SwitchboardPreprocessor()
         chunked_data = preprocessor.divide_sessions_into_chunks([inputs], inference=True)
 
         input_ids = []
@@ -198,6 +200,8 @@ class SDECPipeline:
         for i, a, p in list(zip(input_ids, attention_mask, p_labels)):
             with torch.no_grad():
                 embeddings = sdec_model.get_embeddings(i, a)
+                if noise:
+                    p = sdec_model.perturb_labels(p)
                 fused = sdec_model.reconcile_features_labels(embeddings, p)
                 outputs = sdec_model.forward(fused)
                 preds.append(outputs[1].argmax(dim=-1))
@@ -221,6 +225,7 @@ class SDECPipeline:
             Accuracy score derived from the fraction of correct predictions over all labels.
         """
         count = 0
+        print(preds)
         total = preds[0].squeeze().size()[0]
         for p_label, r_label in list(zip(preds[0].squeeze().tolist(), labels)):
             if p_label == r_label:

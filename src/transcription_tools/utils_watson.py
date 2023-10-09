@@ -33,8 +33,8 @@ def read_watson(watson_results_file) -> Dict:
                 tokens.append(t[0])
 
     for result in watson_results["speaker_labels"]:
-        speaker_labels.append(int(result["speaker"])+1)
-        indiv_speakers.append(int(result["speaker"])+1)
+        speaker_labels.append(int(result["speaker"]))
+        indiv_speakers.append(int(result["speaker"]))
     
     num_speakers = len(set(indiv_speakers))
 
