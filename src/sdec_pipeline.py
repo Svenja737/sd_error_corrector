@@ -34,9 +34,9 @@ class SDECPipeline:
     def train_model(self, 
                     model_name_or_path: str, 
                     num_labels: int, 
-                    label_noise: float, 
                     dataset_type: str, 
-                    training_mode: str=None,
+                    training_mode: str,
+                    label_noise: float=None,
                     santa_barbara_path: str=None) -> None:
         """
         Trains a speaker diarization label correction model.
