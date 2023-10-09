@@ -147,7 +147,6 @@ class SDECModule(L.LightningModule):
             fused_embeddings = backbone_embeddings
 
         loss, logits = self(fused_embeddings, labels=labels)
-        print(f"Logits: {logits}")
         self.log("Train_Loss", loss, prog_bar=True, logger=True)
         return {"loss": loss, "predictions" : logits.argmax(dim=-1), "labels": labels}
 
@@ -192,7 +191,7 @@ class SDECModule(L.LightningModule):
             cleaned_preds, cleaned_labels = self.postprocess(logits.argmax(dim=-1), labels)
             self.csv_writer.update_state({"id" : batch_ids, 
                                           "tokens" : "".join(tokens), 
-                                          # "probability_per_label" : str([max(token_logits.tolist()) for token_logits in logits]), 
+                                          "probabilities" : str(torch.softmax(logits, 1)), 
                                           "predictions" : str(cleaned_preds[0]),
                                           "labels" : str(cleaned_labels[0])})
             
@@ -311,12 +310,15 @@ class SDECModule(L.LightningModule):
             label_list = [x for x in range(self.num_labels)]
             rand_labels = [(i[0], random.choice(label_list)) for i in id_batch[:range_perturbed_labels]]
             init_rand_labels = [0]*self.num_labels
-            new_rand_labels = [(x[0], [y+1 if i==x[1] else y for i, y in enumerate(init_rand_labels)]) for x in rand_labels]
+            new_rand_labels = [(x[0], [y+1 if i==x[1] else y for i, y in enumerate(init_rand_labels)]) for x in rand_labels] 
             id_batch[:range_perturbed_labels] = new_rand_labels
             id_batch.sort()
             batch_perturbed.append([x[1] for x in id_batch])
         
-        return torch.as_tensor(batch_perturbed, dtype=torch.int32, device="cuda")
+        if torch.cuda.is_available():
+            return torch.as_tensor(batch_perturbed, dtype=torch.int32, device="cuda")
+        else:
+            return torch.as_tensor(batch_perturbed, dtype=torch.int32, device="cpu")
 
     def schedule_noise_by_epoch(self):
         """
