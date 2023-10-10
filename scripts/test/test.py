@@ -23,7 +23,7 @@ def main():
 
     wandb.login(anonymous="allow", key=args.wandb_key)
     sdec = SDECPipeline()
-    sdec.test_model(args.model_name, args.num_labels, args.trained_checkpoint, args.dataset_type, args.testing_mode, args.santa_barbara_path, args.write_csv, args.csv_save_path)
+    sdec.test_model(args.model_name, args.num_labels, args.trained_checkpoint, args.testing_mode, args.dataset_type, args.santa_barbara_path, args.write_csv, args.csv_save_path)
 
 if __name__ == "__main__":
     main()
