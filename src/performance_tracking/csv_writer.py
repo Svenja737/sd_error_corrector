@@ -37,8 +37,7 @@ class CSVWriter:
             os.mkdir(self.output_path)
 
         df = pd.DataFrame.from_records(self.state_list)
-        print(df)
-        df.to_csv(self.output_path+"/test_results.csv", columns=field_names, sep=";")
+        df.to_csv(self.output_path, columns=field_names, sep=";")
         
 
     def convert_ids_to_tokens(self, input_ids_batch):

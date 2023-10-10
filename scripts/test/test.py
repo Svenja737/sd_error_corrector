@@ -15,6 +15,7 @@ def main():
     parser.add_argument("trained_checkpoint", help="Trained SDEC model checkpoint.")
     parser.add_argument("dataset_type", choices=["switchboard", "santa_barbara", "fused"], help="Dataset variant, either Switchboard, Santa Barbara or both (i.e. fused).")
     parser.add_argument("wandb_key", help="Authentification key for wandb logger.")
+    parser.add_argument("--testing_mode", default=None, help="Set to 'no_noise' for models trained in no_noise training mode.")
     parser.add_argument("--santa_barbara_path", help="Path to downloaded SB dataset. Download at https://www.linguistics.ucsb.edu/sites/secure.lsit.ucsb.edu.ling.d7/files/sitefiles/research/SBC/SBCorpus.zip")
     parser.add_argument("--write_csv", action="store_true", help="Save model information during testing.")
     parser.add_argument("--csv_save_path", default="results", help="Location of the model information csv file.")
@@ -22,7 +23,7 @@ def main():
 
     wandb.login(anonymous="allow", key=args.wandb_key)
     sdec = SDECPipeline()
-    sdec.test_model(args.model_name, args.num_labels, args.trained_checkpoint, args.dataset_type, args.santa_barbara_path, args.write_csv)
+    sdec.test_model(args.model_name, args.num_labels, args.trained_checkpoint, args.dataset_type, args.testing_mode, args.santa_barbara_path, args.write_csv, args.csv_save_path)
 
 if __name__ == "__main__":
     main()

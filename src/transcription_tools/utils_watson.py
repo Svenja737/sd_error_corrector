@@ -1,6 +1,7 @@
 from typing import Dict
 import json
 import argparse
+import torch
 
 
 def read_watson(watson_results_file) -> Dict:
@@ -21,7 +22,7 @@ def read_watson(watson_results_file) -> Dict:
     speaker_labels = []
     indiv_speakers = []
 
-    with open(f"/home/sfilthaut/sdec_revamped/sdec_revamped/{watson_results_file}", "r") as file:
+    with open(watson_results_file, "r") as file:
         watson_results = json.load(file)
     fields = watson_results.keys()
     if "speaker_labels" not in fields:
@@ -60,11 +61,11 @@ def load_labels(reference_text_file) -> list:
     """
 
     labels = []
-    with open(f"/home/sfilthaut/sdec_revamped/sdec_revamped/{reference_text_file}", "r") as file:
+    with open(reference_text_file, "r") as file:
         for line in file.readlines():
             labels.append(int(line.split("\t")[1].strip("\n")))
 
-    return labels
+    return torch.tensor([labels])
 
 
 def load_tokens(reference_text_file) -> list:

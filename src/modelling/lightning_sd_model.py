@@ -61,6 +61,7 @@ class SDECModule(L.LightningModule):
                  model_name_or_path: str,
                  num_labels: int, 
                  training_mode: str=None,
+                 testing_mode=None,
                  label_noise: float=None,
                  test_label_noise: float=0.0,
                  train_batch_size: int=8,
@@ -78,6 +79,7 @@ class SDECModule(L.LightningModule):
         self.save_hyperparameters()
         self.model_name_or_path = model_name_or_path
         self.training_mode = training_mode
+        self.testing_mode = testing_mode
         self.num_labels = num_labels
         self.label_noise = label_noise
         self.test_label_noise = test_label_noise
@@ -85,7 +87,6 @@ class SDECModule(L.LightningModule):
         self.eval_batch_size = eval_batch_size
         self.dropout_rate = dropout_rate
         self.backbone = RobertaModel.from_pretrained(model_name_or_path)
-        print(self.training_mode)
         if self.training_mode == "no_noise":
             self.feature_dim = 768 
         else:
@@ -182,7 +183,10 @@ class SDECModule(L.LightningModule):
         backbone_embeddings = self.get_embeddings(input_ids, attention_mask)
         noise = self.test_label_noise
         perturbed_labels = self.perturb_labels(p_labels, noise)
-        fused_embeddings = self.reconcile_features_labels(backbone_embeddings, perturbed_labels)
+        if self.testing_mode == "no_noise":
+            fused_embeddings = backbone_embeddings
+        else:
+            fused_embeddings = self.reconcile_features_labels(backbone_embeddings, perturbed_labels)
         logits = self(fused_embeddings)[1]
 
         self.test_step_outputs.append({"predictions" : logits.argmax(dim=-1), "labels": labels})

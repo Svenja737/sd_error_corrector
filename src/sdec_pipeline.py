@@ -85,11 +85,12 @@ class SDECPipeline:
     def test_model(self, 
                    model_name_or_path, 
                    num_labels,
-                   checkpoint,  
+                   checkpoint,
+                   testing_mode=None,  
                    dataset_type=None, 
                    santa_barbara_path=None,
                    write_csv=False,
-                   csv_save_path="results"
+                   csv_save_path="results/results.csv"
                    ) -> None:
         """
         Evaluates a speaker diarization label correction model on the Switchboard dataset (test split).
@@ -118,6 +119,7 @@ class SDECPipeline:
         
         sdec_model = SDECModule.load_from_checkpoint(
             checkpoint,
+            testing_mode=testing_mode,
             map_location=torch.device('cpu'),
             num_labels=num_labels,
             train_batch_size=1,
@@ -184,27 +186,32 @@ class SDECPipeline:
         )
 
         preprocessor = SwitchboardPreprocessor()
-        chunked_data = preprocessor.divide_sessions_into_chunks([inputs], inference=True)
+        inputs["perturbed_labels"] = [inputs["labels"]]
+        chunked_data = preprocessor.divide_sessions_into_chunks([inputs])
 
         input_ids = []
+        labels = []
         p_labels = []
         attention_mask = []
         preds = []
         for i in chunked_data:
             i["labels"] = [i["labels"]]
-            out = sdec_datamodule.tokenize_and_align_labels_inference(i)
+            out = sdec_datamodule.tokenize_and_align_labels(i)
             input_ids.append(out["input_ids"])
+            labels.append(torch.as_tensor(out["labels"]))
             p_labels.append(torch.as_tensor(out["labels"]))
             attention_mask.append(out["attention_mask"])
 
-        for i, a, p in list(zip(input_ids, attention_mask, p_labels)):
+        print(labels)
+
+        for i, a, l, p in list(zip(input_ids, attention_mask, labels, p_labels)):
             with torch.no_grad():
                 embeddings = sdec_model.get_embeddings(i, a)
-                if noise:
-                    p = sdec_model.perturb_labels(p)
-                fused = sdec_model.reconcile_features_labels(embeddings, p)
+                print(l.size())
+                print(embeddings, embeddings.size())
+                fused = sdec_model.reconcile_features_labels(embeddings, p.unsqueeze(2))
                 outputs = sdec_model.forward(fused)
-                preds.append(outputs[1].argmax(dim=-1))
+                preds.append(sdec_model.postprocess(outputs[1].argmax(dim=-1), l))
             
         return preds
     
@@ -225,11 +232,11 @@ class SDECPipeline:
             Accuracy score derived from the fraction of correct predictions over all labels.
         """
         count = 0
-        print(preds)
         total = preds[0].squeeze().size()[0]
-        for p_label, r_label in list(zip(preds[0].squeeze().tolist(), labels)):
-            if p_label == r_label:
-                count += 1
+        for pred in preds:
+            for p_label, r_label in list(zip(pred.squeeze().tolist(), labels.squeeze().tolist())):
+                if p_label == r_label:
+                    count += 1
 
         return count/total
 

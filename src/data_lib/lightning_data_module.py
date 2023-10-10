@@ -92,7 +92,7 @@ class SDDataModule(L.LightningDataModule):
 
     def setup(self, stage: str) -> DatasetDict:
 
-        assert self.dataset_type in ["switchboard", "santa_barbara", "fused"], "Choose valid dataset variant from ['switchboard', 'santa_barbara', 'fused']"
+        assert self.dataset_type in ["switchboard", "santa_barbara", "fused", None], "Choose valid dataset variant from ['switchboard', 'santa_barbara', 'fused', None]"
 
         if self.dataset_type == "switchboard":
             dp = DataPipeline()
@@ -112,6 +112,9 @@ class SDDataModule(L.LightningDataModule):
             santa_b_prep = SantaBarbaraPreprocessor()
             dataset_two = santa_b_prep.make_dataset_object(self.santa_barbara_path)
             self.dataset = self.combine_datasets(dataset_one, dataset_two)
+
+        if self.dataset == None:
+            self.dataset == None
 
         for split in self.dataset.keys():
             self.dataset[split] = self.dataset[split].map(
