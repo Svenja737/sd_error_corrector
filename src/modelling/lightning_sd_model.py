@@ -61,7 +61,7 @@ class SDECModule(L.LightningModule):
                  model_name_or_path: str,
                  num_labels: int, 
                  training_mode: str=None,
-                 testing_mode=None,
+                 testing_mode: str=None,
                  label_noise: float=None,
                  test_label_noise: float=0.0,
                  train_batch_size: int=8,
@@ -187,6 +187,7 @@ class SDECModule(L.LightningModule):
             fused_embeddings = backbone_embeddings
         else:
             fused_embeddings = self.reconcile_features_labels(backbone_embeddings, perturbed_labels)
+
         logits = self(fused_embeddings)[1]
 
         self.test_step_outputs.append({"predictions" : logits.argmax(dim=-1), "labels": labels})

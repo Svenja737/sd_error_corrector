@@ -1,1 +1,1 @@
-python3 transcribe_file.py > gkiki.json
+python3 transcribe_file.py PATH/TO/AUDIO/FILE AUTHENTIFICATION_TOKEN > PATH/FOR/SAVING/TRANSCRIPTION.json

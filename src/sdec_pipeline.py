@@ -90,7 +90,7 @@ class SDECPipeline:
                    dataset_type=None, 
                    santa_barbara_path=None,
                    write_csv=False,
-                   csv_save_path="results/results.csv"
+                   csv_save_path="results/results_test.csv"
                    ) -> None:
         """
         Evaluates a speaker diarization label correction model on the Switchboard dataset (test split).
