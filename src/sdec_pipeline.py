@@ -113,7 +113,6 @@ class SDECPipeline:
             num_labels,
             train_batch_size=1,
             eval_batch_size=1,
-            num_labels=num_labels,
             num_workers=4,
             santa_barbara_path=santa_barbara_path
             )
