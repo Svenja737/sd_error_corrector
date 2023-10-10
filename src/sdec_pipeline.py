@@ -109,11 +109,12 @@ class SDECPipeline:
 
         sdec_datamodule = SDDataModule(
             model_name_or_path,
+            dataset_type,
+            num_labels,
             train_batch_size=1,
             eval_batch_size=1,
             num_labels=num_labels,
             num_workers=4,
-            dataset_type=dataset_type,
             santa_barbara_path=santa_barbara_path
             )
         
