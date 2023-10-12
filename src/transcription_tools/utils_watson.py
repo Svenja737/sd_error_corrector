@@ -86,7 +86,7 @@ def load_tokens(reference_text_file) -> list:
     tokens = []
     with open(f"/home/sfilthaut/sdec_revamped/sdec_revamped/{reference_text_file}", "r") as file:
         for line in file.readlines():
-            tokens.append(int(line.split("\t")[1].strip("\n")))
+            tokens.append(line.split("\t")[0])
 
     return tokens
 

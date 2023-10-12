@@ -82,7 +82,6 @@ class SDECModule(L.LightningModule):
         self.testing_mode = testing_mode
         self.num_labels = num_labels
         self.label_noise = label_noise
-        self.test_label_noise = test_label_noise
         self.train_batch_size = train_batch_size
         self.eval_batch_size = eval_batch_size
         self.dropout_rate = dropout_rate
@@ -181,7 +180,7 @@ class SDECModule(L.LightningModule):
         p_labels = batch["perturbed_labels"]
         labels = batch["labels"]
         backbone_embeddings = self.get_embeddings(input_ids, attention_mask)
-        noise = self.test_label_noise
+        noise = self.label_noise
         perturbed_labels = self.perturb_labels(p_labels, noise)
         if self.testing_mode == "no_noise":
             fused_embeddings = backbone_embeddings
@@ -196,7 +195,6 @@ class SDECModule(L.LightningModule):
             cleaned_preds, cleaned_labels = self.postprocess(logits.argmax(dim=-1), labels)
             self.csv_writer.update_state({"id" : batch_ids, 
                                           "tokens" : "".join(tokens), 
-                                          "probabilities" : str(torch.softmax(logits, 1)), 
                                           "predictions" : str(cleaned_preds[0]),
                                           "labels" : str(cleaned_labels[0])})
             

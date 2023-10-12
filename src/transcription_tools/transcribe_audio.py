@@ -5,7 +5,7 @@ from ibm_watson.websocket import RecognizeCallback, AudioSource
 from ibm_cloud_sdk_core.authenticators import IAMAuthenticator
 
 
-def transcribe(audio_path: str, auth_token: str): 
+def transcribe(audio_path: str, auth_token: str, model_name: str): 
     """Transcribe an audio file using IBM Watson websockets.
 
     Parameters:
@@ -44,7 +44,7 @@ def transcribe(audio_path: str, auth_token: str):
         service.recognize_using_websocket(
             audio=audio_source,
             recognize_callback=my_recognize_callback,
-            model="en-US_Multimedia",
+            model=model_name,
             content_type='audio/wav',
             max_alternatives=1,
             speaker_labels=True,

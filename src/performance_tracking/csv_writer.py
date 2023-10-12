@@ -33,12 +33,11 @@ class CSVWriter:
     def write_csv(self):
         field_names = self.state_list[0].keys()
 
-        if not os.path.isdir(self.output_path):
-            os.mkdir(self.output_path)
-
         df = pd.DataFrame.from_records(self.state_list)
         df.to_csv(self.output_path, columns=field_names, sep=";")
-        
+
+    def write_inference_csv(self, token_list, label_list, preds_list):
+        pass
 
     def convert_ids_to_tokens(self, input_ids_batch):
         tokenizer = AutoTokenizer.from_pretrained("roberta-base")

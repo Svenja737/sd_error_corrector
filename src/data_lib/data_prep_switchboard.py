@@ -3,6 +3,7 @@ import data_pipelines.datasets as dp
 import more_itertools as mit
 import regex as re
 from datasets import Dataset, DatasetDict
+from data_pipelines import datasets
 from typing import List, Dict
 
 
@@ -119,11 +120,9 @@ class SwitchboardPreprocessor:
         Returns
         -------
         """
-        n_chunks = int(self.max_item(switchboard_dataset)/512) if int(self.max_item(switchboard_dataset)/512) != 1 else int(self.max_item(switchboard_dataset)/512) + 1
+        n_chunks = int(self.max_item(switchboard_dataset)/512) + 1
         if n_chunks == 0:
             n_chunks = 1
-
-        print(n_chunks)
 
         chunked_data = []
         for i in switchboard_dataset:
@@ -217,5 +216,10 @@ class SwitchboardPreprocessor:
         chunked = self.divide_sessions_into_chunks(updated_data)
         split_data = self.split_train_val_test(chunked)
 
+        # split_data["train"].save_to_disk("/home/sfilthaut/sdec_revamped/sdec_revamped/sw_data/train")
+        # split_data["validation"].save_to_disk("/home/sfilthaut/sdec_revamped/sdec_revamped/sw_data/validation")
+        # split_data["test"].save_to_disk("/home/sfilthaut/sdec_revamped/sdec_revamped/sw_data/test")
+
         return split_data
-    
+
+

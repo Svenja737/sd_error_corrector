@@ -134,14 +134,24 @@ class SantaBarbaraPreprocessor:
                 "perturbed_labels" : all_file_labels
             }
             
-            corpus_by_file.append(all_file_data)
+            if all_file_data["tokens"] != []:
+                corpus_by_file.append(all_file_data)
         
-        chunked = switchboard.divide_sessions_into_chunks(corpus_by_file) # TODO abstract those methods to Preprocessor class or utils
+        chunked = switchboard.divide_sessions_into_chunks(corpus_by_file) 
         for c in chunked:
             c["labels"] = self.normalize_labels(c["labels"])
             c["perturbed_labels"] = self.normalize_labels(c["perturbed_labels"])
         dataset = switchboard.split_train_val_test(chunked)
+
+        # dataset["train"].save_to_disk("/home/sfilthaut/sdec_revamped/sdec_revamped/sb_data/train")
+        # dataset["validation"].save_to_disk("/home/sfilthaut/sdec_revamped/sdec_revamped/sb_data/validation")
+        # dataset["test"].save_to_disk("/home/sfilthaut/sdec_revamped/sdec_revamped/sb_data/test")
+
         return dataset
+    
+# sb = SantaBarbaraPreprocessor()
+# sb.make_dataset_object("/home/sfilthaut/sdec_revamped/SBCorpus/TRN")
+
             
 
 
