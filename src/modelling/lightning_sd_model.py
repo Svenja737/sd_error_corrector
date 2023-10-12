@@ -181,10 +181,10 @@ class SDECModule(L.LightningModule):
         labels = batch["labels"]
         backbone_embeddings = self.get_embeddings(input_ids, attention_mask)
         noise = self.label_noise
-        perturbed_labels = self.perturb_labels(p_labels, noise)
         if self.testing_mode == "no_noise":
             fused_embeddings = backbone_embeddings
         else:
+            perturbed_labels = self.perturb_labels(p_labels, noise)
             fused_embeddings = self.reconcile_features_labels(backbone_embeddings, perturbed_labels)
 
         logits = self(fused_embeddings)[1]
