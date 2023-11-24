@@ -184,12 +184,13 @@ class SDECModule(L.LightningModule):
         if self.testing_mode == "no_noise":
             fused_embeddings = backbone_embeddings
         else:
-            perturbed_labels = self.perturb_labels(p_labels, noise)
+            perturbed_labels = self.perturb_labels(p_labels, noise, test=True)
             fused_embeddings = self.reconcile_features_labels(backbone_embeddings, perturbed_labels)
 
         logits = self(fused_embeddings)[1]
 
         self.test_step_outputs.append({"predictions" : logits.argmax(dim=-1), "labels": labels})
+        self.log("Noise level", noise, logger=True)
         if self.write_csv:
             tokens = self.csv_writer.convert_ids_to_tokens(input_ids)
             cleaned_preds, cleaned_labels = self.postprocess(logits.argmax(dim=-1), labels)
@@ -293,7 +294,7 @@ class SDECModule(L.LightningModule):
         """
         return torch.cat((backbone_embeddings, p_labels), -1)
     
-    def perturb_labels(self, batched_labels, noise_n):
+    def perturb_labels(self, batched_labels, noise_n, test=False):
         """
         Parameters
         ----------
@@ -309,7 +310,8 @@ class SDECModule(L.LightningModule):
             seq_length = len(batch)
             range_perturbed_labels = int(seq_length*noise_n)
             id_batch = [(i, label) for i, label in enumerate(batch)] 
-            random.shuffle(id_batch)
+            if test != True:
+                random.shuffle(id_batch)
             label_list = [x for x in range(self.num_labels)]
             rand_labels = [(i[0], random.choice(label_list)) for i in id_batch[:range_perturbed_labels]]
             init_rand_labels = [0]*self.num_labels
@@ -322,7 +324,7 @@ class SDECModule(L.LightningModule):
             return torch.as_tensor(batch_perturbed, dtype=torch.int32, device="cuda")
         else:
             return torch.as_tensor(batch_perturbed, dtype=torch.int32, device="cpu")
-
+        
     def schedule_noise_by_epoch(self):
         """
         Parameters
