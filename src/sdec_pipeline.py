@@ -80,7 +80,8 @@ class SDECPipeline:
 
         trainer = L.Trainer(
             devices=1,
-            log_every_n_steps=30,
+            log_every_n_steps=10,
+            max_epochs=100,
             enable_progress_bar=True,
             enable_checkpointing=True,
             logger=logger
@@ -140,7 +141,7 @@ class SDECPipeline:
 
         trainer = L.Trainer(
             devices=1,
-            log_every_n_steps=5,
+            log_every_n_steps=10,
             enable_progress_bar=True,
             enable_checkpointing=True,
             logger=logger,
