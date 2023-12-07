@@ -62,8 +62,9 @@ class SDECModule(L.LightningModule):
                  num_labels: int, 
                  training_mode: str=None,
                  testing_mode: str=None,
+                 perturbation_mode: str=None,
+                 token_noise: bool=False,
                  label_noise: float=None,
-                 test_label_noise: float=0.0,
                  train_batch_size: int=8,
                  eval_batch_size: int=8,
                  learning_rate: float=1e-4,
@@ -80,6 +81,12 @@ class SDECModule(L.LightningModule):
         self.model_name_or_path = model_name_or_path
         self.training_mode = training_mode
         self.testing_mode = testing_mode
+        self.perturbation_mode = perturbation_mode
+        self.token_noise = token_noise
+        self.overlap_window = 3
+        self.noise_near_n = 0.3
+        self.noise_near_window = 4
+        self.noise_far = 5
         self.num_labels = num_labels
         self.label_noise = label_noise
         self.train_batch_size = train_batch_size
@@ -89,7 +96,7 @@ class SDECModule(L.LightningModule):
         if self.training_mode == "no_noise":
             self.feature_dim = 768 
         else:
-            self.feature_dim = 768 + num_labels
+            self.feature_dim = 768 + self.num_labels
         self.dropout = torch.nn.Dropout(self.dropout_rate)
         self.model = torch.nn.Linear(self.feature_dim, self.num_labels)
         self.criterion = torch.nn.CrossEntropyLoss()
@@ -131,43 +138,45 @@ class SDECModule(L.LightningModule):
         attention_mask = batch["attention_mask"]
         p_labels = batch["perturbed_labels"]
         labels = batch["labels"]
+
+        if self.token_noise == True:
+            input_ids = self.perturb_tokens(input_ids)
+
         backbone_embeddings = self.get_embeddings(input_ids, attention_mask)
 
         assert self.training_mode in ["fixed_noise", "scheduled_noise", "no_noise"], "Not a valid option for training!"
 
         if self.training_mode == "fixed_noise":
-            assert self.label_noise != None, "Set a value for label_noise!"
-            perturbed_labels = self.perturb_labels(p_labels, self.label_noise)
+            if self.perturbation_mode == "random":
+                assert self.label_noise != None, "Set a value for label_noise!"
+                perturbed_labels = self.perturb_labels(p_labels, self.label_noise)
+            if self.perturbation_mode == "overlap":
+                perturbed_labels = self.perturb_labels_around_speaker_changes(p_labels, self.overlap_window)
             fused_embeddings = self.reconcile_features_labels(backbone_embeddings, perturbed_labels)
         elif self.training_mode == "scheduled_noise":
-            noise = self.schedule_noise_by_epoch()
-            perturbed_labels = self.perturb_labels(p_labels, noise)
+            if self.perturbation_mode == "random":
+                noise = self.schedule_noise_by_epoch()
+                perturbed_labels = self.perturb_labels(p_labels, noise)
+            if self.perturbation_mode == "overlap":
+                perturbed_labels = self.perturb_labels_around_speaker_changes(p_labels, self.overlap_window)
             fused_embeddings = self.reconcile_features_labels(backbone_embeddings, perturbed_labels)
         elif self.training_mode == "no_noise":
             fused_embeddings = backbone_embeddings
 
         loss, logits = self(fused_embeddings, labels=labels)
+        if self.training_mode == "fixed_noise" and self.perturbation_mode == "random":
+            self.log("Label_Noise", self.label_noise, logger=True)
+        if self.token_noise == True and self.current_epoch == 0: 
+            self.log("Token Swap Example", input_ids, logger=True)
         self.log("Train_Loss", loss, prog_bar=True, logger=True)
         return {"loss": loss, "predictions" : logits.argmax(dim=-1), "labels": labels}
 
     def validation_step(self, batch, batch_ids):
         input_ids = batch["input_ids"]
         attention_mask = batch["attention_mask"]
-        p_labels = batch["perturbed_labels"]
         labels = batch["labels"]
         backbone_embeddings = self.get_embeddings(input_ids, attention_mask)
-        noise = 0.0
-
-        if self.training_mode == "fixed_noise":
-            assert self.label_noise != None, "Set a value for label_noise!"
-            perturbed_labels = self.perturb_labels(p_labels, self.label_noise)
-            fused_embeddings = self.reconcile_features_labels(backbone_embeddings, perturbed_labels)
-        elif self.training_mode == "scheduled_noise":
-            noise = self.schedule_noise_by_epoch()
-            perturbed_labels = self.perturb_labels(p_labels, noise)
-            fused_embeddings = self.reconcile_features_labels(backbone_embeddings, perturbed_labels)
-        elif self.training_mode == "no_noise":
-            fused_embeddings = backbone_embeddings
+        fused_embeddings = backbone_embeddings
 
         loss, logits = self(fused_embeddings, labels=labels)
         self.log("Val_Loss", loss, prog_bar=True, logger=True)
@@ -177,20 +186,11 @@ class SDECModule(L.LightningModule):
     def test_step(self, batch, batch_ids):
         input_ids = batch["input_ids"]
         attention_mask = batch["attention_mask"]
-        p_labels = batch["perturbed_labels"]
         labels = batch["labels"]
         backbone_embeddings = self.get_embeddings(input_ids, attention_mask)
-        noise = self.label_noise
-        if self.testing_mode == "no_noise":
-            fused_embeddings = backbone_embeddings
-        else:
-            perturbed_labels = self.perturb_labels(p_labels, noise, test=True)
-            fused_embeddings = self.reconcile_features_labels(backbone_embeddings, perturbed_labels)
-
-        logits = self(fused_embeddings)[1]
+        logits = self(backbone_embeddings)[1]
 
         self.test_step_outputs.append({"predictions" : logits.argmax(dim=-1), "labels": labels})
-        self.log("Noise level", noise, logger=True)
         if self.write_csv:
             tokens = self.csv_writer.convert_ids_to_tokens(input_ids)
             cleaned_preds, cleaned_labels = self.postprocess(logits.argmax(dim=-1), labels)
@@ -325,6 +325,67 @@ class SDECModule(L.LightningModule):
         else:
             return torch.as_tensor(batch_perturbed, dtype=torch.int32, device="cpu")
         
+    def perturb_labels_around_speaker_changes(self, batched_labels, win_size):
+        """
+        Keep label perturbations to sites of speaker overlap, where most labeling 
+        errors tend to be located, as to not distort speaker patterns with random label allocations.
+        """
+        batch_perturbed = []
+        for batch in torch.Tensor.tolist(batched_labels):
+            perturbed = []
+            mark_one = batch[0]
+            mark_two = 0
+            for i in range(len(batch)):
+                if i < mark_two:
+                    continue
+                if mark_one == batch[i]:
+                    perturbed.append(batch[i])
+                    continue
+                else:
+                    perturbed += random.sample(batch[i:i+win_size], len(batch[i:i+win_size]))
+                mark_one = batch[i]
+                mark_two = i + win_size
+            batch_perturbed.append(perturbed)
+
+        if torch.cuda.is_available():
+            return torch.as_tensor(batch_perturbed, dtype=torch.int32, device="cuda")
+        else:
+            return torch.as_tensor(batch_perturbed, dtype=torch.int32, device="cpu")
+
+    def perturb_tokens(self, batched_input_ids):
+        """
+        Perturb tokens by swapping them a narrow context window and over longer 
+        sentence distances. 
+        noise_near_window: window size from which to sample
+        noise_far: how many tokens to swap through the entire sequence
+        """
+        batch_perturbed = []
+        for batch in torch.Tensor.tolist(batched_input_ids):
+            perturbed = []
+            for i in range(len(batch)):
+                input_id_window = batch[i:i+self.noise_near_window]
+                if -100 in input_id_window:
+                    perturbed.append(input_id_window[0])
+                    continue
+                else:
+                    change_token = random.choices([True, False], [self.noise_near_n, 1-self.noise_near_n], k=1)[0]
+                    if change_token == True:
+                        perturbed.append(random.sample(input_id_window, len(input_id_window))[0])
+                    else:
+                        perturbed.append(input_id_window[0])
+
+            num_tokens = len(perturbed)
+            index_list = random.sample(list(range(num_tokens)), self.noise_far)
+            index_list_shuffled = random.sample(index_list, len(index_list))
+            for j, k in list(zip(index_list, index_list_shuffled)):
+                if j != -100 and k != -100:
+                    perturbed[j], perturbed[k] = perturbed[k], perturbed[j]
+
+        if torch.cuda.is_available():
+            return torch.as_tensor(batch_perturbed, dtype=torch.int32, device="cuda")
+        else:
+            return torch.as_tensor(batch_perturbed, dtype=torch.int32, device="cpu")
+
     def schedule_noise_by_epoch(self):
         """
         Parameters
@@ -335,4 +396,5 @@ class SDECModule(L.LightningModule):
         """
         noise_frac = np.round(self.current_epoch/20, 2)
         return 0.0 + noise_frac
+    
 

@@ -46,8 +46,8 @@ class SantaBarbaraPreprocessor:
     def remove_invalid_chars(self, list_of_words):
         clean_list = []
         invalid_chars = ["@", "-", "$", "[", "]", ".", "<", ">", "=", "--", "X", "&", "2", "3", "4", "~", "?", "%", "!"]
-        invalid_expressions = ['', "VO", "YWN", "SING", "HI", "Q", "WHISTLE", "PAR", "TALK"]
-        bracket_re = "[\(]+[A-Z]*_*[a-z]*[\)]+"
+        invalid_expressions = ['', "VO", "YWN", "SING", "HI", "Q", "P", "WHISTLE", "PAR", "TALK"]
+        bracket_re = "[\(]+[A-Z]*[_|-]*[a-z]*[\)]+"
         for w in list_of_words:
             w_new = ""
             for char in w:
@@ -112,9 +112,10 @@ class SantaBarbaraPreprocessor:
             cleaned_data = self.extract_and_format(c)
             combined_turns = self.combine_split_speaker_turns(cleaned_data)
             cleaned_corpus.append(combined_turns)
-            
+   
         corpus_by_file = []
         for i, file in enumerate(cleaned_corpus):
+
             all_file_data = {}
             all_file_tokens = []
             all_file_labels = []
@@ -141,16 +142,23 @@ class SantaBarbaraPreprocessor:
         for c in chunked:
             c["labels"] = self.normalize_labels(c["labels"])
             c["perturbed_labels"] = self.normalize_labels(c["perturbed_labels"])
-        dataset = switchboard.split_train_val_test(chunked)
+
+        chunked_filtered_by_labels = []
+        for c in chunked:
+            if len(list(set(c["labels"]))) < 5: #filter out all instances with more than 4 speakers
+                chunked_filtered_by_labels.append(c)
+
+        dataset = switchboard.split_train_val_test(chunked_filtered_by_labels)
 
         # dataset["train"].save_to_disk("/home/sfilthaut/sdec_revamped/sdec_revamped/sb_data/train")
         # dataset["validation"].save_to_disk("/home/sfilthaut/sdec_revamped/sdec_revamped/sb_data/validation")
         # dataset["test"].save_to_disk("/home/sfilthaut/sdec_revamped/sdec_revamped/sb_data/test")
 
         return dataset
+
     
-# sb = SantaBarbaraPreprocessor()
-# sb.make_dataset_object("/home/sfilthaut/sdec_revamped/SBCorpus/TRN")
+
+    
 
             
 
