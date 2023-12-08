@@ -38,7 +38,6 @@ class SDECPipeline:
                     num_labels: int, 
                     dataset_type: str, 
                     training_mode: str,
-                    perturbation_mode:str,
                     token_noise:bool,
                     label_noise: float=None,
                     santa_barbara_path: str=None) -> None:
@@ -65,7 +64,6 @@ class SDECPipeline:
         sdec_model = SDECModule(
             model_name_or_path,
             training_mode=training_mode,
-            perturbation_mode=perturbation_mode,
             token_noise=token_noise,
             num_labels=num_labels,
             label_noise=label_noise,
