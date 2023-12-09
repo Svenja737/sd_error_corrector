@@ -398,9 +398,11 @@ class SDECModule(L.LightningModule):
         -------
         """
         start_noise = 0.0
+        noise = None
         if self.current_epoch < 3:
-            return start_noise
+            noise = start_noise
         elif self.current_epoch % 3 == 0:
-            return float(self.current_epoch / 60)
+            noise = float(self.current_epoch / 60)
     
+        return noise
 
