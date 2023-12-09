@@ -104,6 +104,7 @@ class SDECModule(L.LightningModule):
         self.csv_save_path = csv_save_path
         self.csv_writer = CSVWriter(self.csv_save_path)
         self.write_csv = write_csv
+        self.noise_epoch = 0
         
 
     def forward(self, fused_labels_embeddings, labels=None):
@@ -396,12 +397,15 @@ class SDECModule(L.LightningModule):
         Returns
         -------
         """
-        start_noise = 0.0
-        noise = None
+        noise = 0.0
         if self.current_epoch < 3:
-            noise = start_noise
+            noise = noise
         elif self.current_epoch % 3 == 0:
             noise = float(self.current_epoch / 60)
-    
+            self.noise_epoch = self.current_epoch
+        else:
+            noise = float(self.noise_epoch / 60)
+
         return noise
+            
 
