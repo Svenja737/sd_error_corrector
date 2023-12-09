@@ -107,7 +107,6 @@ class SDECModule(L.LightningModule):
         
 
     def forward(self, fused_labels_embeddings, labels=None):
-        print(fused_labels_embeddings)
         logits = self.model(fused_labels_embeddings)
         loss = None
         if labels != None:
@@ -148,9 +147,7 @@ class SDECModule(L.LightningModule):
         if self.training_mode == "fixed_noise":
             assert self.label_noise != None, "Set a value for label_noise!"
             perturbed_labels = self.perturb_labels(p_labels, self.label_noise)
-            print(perturbed_labels)
             fused_embeddings = self.reconcile_features_labels(backbone_embeddings, perturbed_labels)
-            print(fused_embeddings)
         elif self.training_mode == "scheduled_noise":
             noise = self.schedule_random_noise_by_epoch()
             perturbed_labels = self.perturb_labels(p_labels, noise)
@@ -162,8 +159,10 @@ class SDECModule(L.LightningModule):
             fused_embeddings = backbone_embeddings
 
         loss, logits = self(fused_embeddings, labels=labels)
-        if self.training_mode == "fixed_noise" or self.training_mode == "scheduled_noise":
+        if self.training_mode == "fixed_noise":
             self.log("Label_Noise", self.label_noise, logger=True)
+        if self.training_mode == "scheduled_noise":
+            self.log("Label_Noise", noise, logger=True)
         if self.token_noise == True and self.current_epoch == 0: 
             self.log("Token Swap Example", self.csv_writer.convert_ids_to_tokens(input_ids), logger=True)
         self.log("Train_Loss", loss, prog_bar=True, logger=True)
@@ -389,13 +388,19 @@ class SDECModule(L.LightningModule):
 
     def schedule_random_noise_by_epoch(self):
         """
+        Return increasing levels of noise, after an initial 3 epochs of training on 
+        no noise. Increases noise every 3 epochs by 0.05.
+
         Parameters
         ----------
 
         Returns
         -------
         """
-        noise_frac = np.round(self.current_epoch/20, 2)
-        return 0.0 + noise_frac
+        start_noise = 0.0
+        if self.current_epoch < 3:
+            return start_noise
+        elif self.current_epoch % 3 == 0:
+            return float(self.current_epoch / 60)
     
 
