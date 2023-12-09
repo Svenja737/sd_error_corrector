@@ -175,7 +175,6 @@ class SDECModule(L.LightningModule):
         labels = batch["labels"]
         backbone_embeddings = self.get_embeddings(input_ids, attention_mask)
         fused_embeddings = self.reconcile_features_labels(backbone_embeddings, p_labels)
-        print(fused_embeddings)
 
         loss, logits = self(fused_embeddings, labels=labels)
         self.log("Val_Loss", loss, prog_bar=True, logger=True)
