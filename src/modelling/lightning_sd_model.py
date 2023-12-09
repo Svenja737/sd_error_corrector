@@ -91,10 +91,7 @@ class SDECModule(L.LightningModule):
         self.eval_batch_size = eval_batch_size
         self.dropout_rate = dropout_rate
         self.backbone = RobertaModel.from_pretrained(model_name_or_path)
-        if self.training_mode == "no_noise":
-            self.feature_dim = 768 
-        else:
-            self.feature_dim = 768 + self.num_labels
+        self.feature_dim = 768 + self.num_labels
         self.dropout = torch.nn.Dropout(self.dropout_rate)
         self.model = torch.nn.Linear(self.feature_dim, self.num_labels)
         self.criterion = torch.nn.CrossEntropyLoss()
