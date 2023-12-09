@@ -156,7 +156,7 @@ class SDECModule(L.LightningModule):
             perturbed_labels = self.perturb_labels_around_speaker_changes(p_labels, self.overlap_window)
             fused_embeddings = self.reconcile_features_labels(backbone_embeddings, perturbed_labels)
         elif self.training_mode == "no_noise":
-            fused_embeddings = backbone_embeddings
+            fused_embeddings = self.reconcile_features_labels(backbone_embeddings, p_labels)
 
         loss, logits = self(fused_embeddings, labels=labels)
         if self.training_mode == "fixed_noise":
