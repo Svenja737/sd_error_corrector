@@ -183,9 +183,10 @@ class SDECModule(L.LightningModule):
     def test_step(self, batch, batch_ids):
         input_ids = batch["input_ids"]
         attention_mask = batch["attention_mask"]
+        p_labels = batch["perturbed_labels"]
         labels = batch["labels"]
         backbone_embeddings = self.get_embeddings(input_ids, attention_mask)
-        fused_embeddings = self.reconcile_features_labels(backbone_embeddings, labels)
+        fused_embeddings = self.reconcile_features_labels(backbone_embeddings, p_labels)
         logits = self(fused_embeddings)[1]
 
         self.test_step_outputs.append({"predictions" : logits.argmax(dim=-1), "labels": labels})
