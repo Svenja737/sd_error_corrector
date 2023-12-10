@@ -61,7 +61,6 @@ class SDECModule(L.LightningModule):
                  model_name_or_path: str,
                  num_labels: int, 
                  training_mode: str=None,
-                 testing_mode: str=None,
                  label_noise: float=None,
                  token_noise: bool=False,
                  binary: bool=False,
@@ -80,7 +79,6 @@ class SDECModule(L.LightningModule):
         self.save_hyperparameters()
         self.model_name_or_path = model_name_or_path
         self.training_mode = training_mode
-        self.testing_mode = testing_mode
         self.token_noise = token_noise
         self.overlap_window = 3
         self.noise_near_n = 0.3
