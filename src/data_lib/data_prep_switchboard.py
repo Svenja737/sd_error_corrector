@@ -108,7 +108,7 @@ class SwitchboardPreprocessor:
             sorted_session = sorted(session_turns, key=lambda x: (x["start"]))
             all_turns.append(sorted_session)
 
-        return all_turns
+        return all_turns[:1000]
        
     def divide_sessions_into_chunks(self, switchboard_dataset, inference=False) -> list:
         """
@@ -161,7 +161,6 @@ class SwitchboardPreprocessor:
 
         train_len = int(0.8 * len(chunked_data))
         val_len = int(0.05 * len(chunked_data)) if int(0.05 * len(chunked_data)) != 0 else 1
-        # print(train_len, val_len, test_len)
 
         train_split = chunked_data[ : train_len]
         random.shuffle(train_split)

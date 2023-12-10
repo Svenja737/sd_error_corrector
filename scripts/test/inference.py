@@ -16,24 +16,21 @@ def main():
     args = parser.parse_args()
 
     sdcp = SDECPipeline()
-
-    text_file = args.watson_save_file.replace(".json", ".txt")
-
     data = sdcp.load_watson_results(args.watson_save_file)
-    text_file_path = args.watson_save_file.replace(".json", ".txt")
-    sdcp.save_watson_txt(data, text_file_path)
+    c_labels = sdcp.load_reference_from_txt("/home/sfilthaut/sdec_revamped/sdec_revamped/audio_samples/corrected/mqtep.txt")
 
-    gold_labels = sdcp.load_reference_from_txt(args.gold_label_file) 
-    watson_labels = sdcp.load_reference_from_txt(text_file) 
-    predictions = sdcp.inference(args.model_name, None, args.model_checkpoint, args.num_labels, data)
-    print(predictions.size())
+    # gold_labels = sdcp.load_reference_from_txt(args.gold_label_file) 
+    watson_labels = data["labels"]
+    predictions = sdcp.inference(args.model_name, None, args.model_checkpoint, args.num_labels, data, c_labels)
 
+    for l1, l2 in list(zip(watson_labels, predictions)):
+        print(f"Watson Label: {l1}, Prediction: {l2}")
 
-    watson_score = sdcp.score(watson_labels, gold_labels)
-    print(watson_score)
+    # watson_score = sdcp.score(watson_labels, gold_labels)
+    # print(watson_score)
 
-    score_prediction = sdcp.score(predictions, gold_labels)
-    print(score_prediction)
+    # score_prediction = sdcp.score(predictions, gold_labels)
+    # print(score_prediction)
     
 
 if __name__ == "__main__":

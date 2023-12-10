@@ -155,7 +155,7 @@ class SDECPipeline:
                   checkpoint: str,
                   num_labels: int, 
                   inputs: dict,
-                  noise: str=False) -> list:
+                  correct_labels = None) -> list:
         """
         Performs inference on a single data instance.
 
@@ -193,7 +193,9 @@ class SDECPipeline:
         )
 
         preprocessor = SwitchboardPreprocessor()
-        inputs["perturbed_labels"] = inputs["labels"]
+        # inputs["perturbed_labels"] = inputs["labels"]
+        inputs["perturbed_labels"] = torch.Tensor.tolist(correct_labels)[0]
+        print(inputs["perturbed_labels"])
         chunked_data = preprocessor.divide_sessions_into_chunks([inputs])
 
         input_ids = []
@@ -215,10 +217,12 @@ class SDECPipeline:
             with torch.no_grad():
                 embeddings = sdec_model.get_embeddings(i, a)
                 fused = sdec_model.reconcile_features_labels(embeddings, p)
+                print(fused)
                 outputs = sdec_model.forward(fused)
-                preds.append(sdec_model.postprocess(outputs[1].argmax(dim=-1), l)[1])
+                preds += sdec_model.postprocess(outputs[1].argmax(dim=-1), l)[1][0]
+        print(preds)
             
-        return torch.as_tensor(preds)
+        return preds
     
     def score(self, preds, labels) -> float:
         """
