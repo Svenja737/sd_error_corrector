@@ -38,8 +38,9 @@ class SDECPipeline:
                     num_labels: int, 
                     dataset_type: str, 
                     training_mode: str,
-                    token_noise:bool,
+                    binary:bool,
                     label_noise: float=None,
+                    token_noise:bool=False,
                     santa_barbara_path: str=None) -> None:
         """
         Trains a speaker diarization label correction model.
@@ -61,12 +62,15 @@ class SDECPipeline:
             santa_barbara_path=santa_barbara_path
             )
         
+        print(f"Token Noise Pipeline: {token_noise}")
+        
         sdec_model = SDECModule(
             model_name_or_path,
             training_mode=training_mode,
-            token_noise=token_noise,
             num_labels=num_labels,
             label_noise=label_noise,
+            token_noise=token_noise,
+            binary=binary,
             train_batch_size=8,
             eval_batch_size=8
         )

@@ -62,8 +62,9 @@ class SDECModule(L.LightningModule):
                  num_labels: int, 
                  training_mode: str=None,
                  testing_mode: str=None,
-                 token_noise: bool=False,
                  label_noise: float=None,
+                 token_noise: bool=False,
+                 binary: bool=False,
                  train_batch_size: int=8,
                  eval_batch_size: int=8,
                  learning_rate: float=1e-4,
@@ -101,6 +102,7 @@ class SDECModule(L.LightningModule):
         self.csv_save_path = csv_save_path
         self.csv_writer = CSVWriter(self.csv_save_path)
         self.write_csv = write_csv
+        self.binary= binary
         self.noise_epoch = 0
         
 
@@ -130,6 +132,7 @@ class SDECModule(L.LightningModule):
         return sequence_outputs
 
     def training_step(self, batch, batch_ids):
+
         input_ids = batch["input_ids"]
         attention_mask = batch["attention_mask"]
         p_labels = batch["perturbed_labels"]
@@ -162,7 +165,7 @@ class SDECModule(L.LightningModule):
         if self.training_mode == "scheduled_noise":
             self.log("Label_Noise", noise, logger=True)
         if self.token_noise == True and self.current_epoch == 0: 
-            self.log("Token Swap Example", self.csv_writer.convert_ids_to_tokens(input_ids), logger=True)
+            print("Token Swap Example", self.csv_writer.convert_ids_to_tokens(input_ids))
         self.log("Train_Loss", loss, prog_bar=True, logger=True)
         return {"loss": loss, "predictions" : logits.argmax(dim=-1), "labels": labels}
 
@@ -209,9 +212,9 @@ class SDECModule(L.LightningModule):
         labels = torch.stack(labels).int()
         predictions = torch.stack(predictions)
         true_labels, true_predictions = self.postprocess(predictions, labels)
-        self.log_dict(self.metric(true_labels, true_predictions), logger=True)
+        self.log_dict(self.metric(true_labels, true_predictions, binary=self.binary), logger=True)
         self.validation_step_outputs.clear()
-        return {"metrics" : self.metric(true_labels, true_predictions)}
+        return {"metrics" : self.metric(true_labels, true_predictions, binary=self.binary)}
 
     def on_test_epoch_end(self):
         labels = []
@@ -224,12 +227,12 @@ class SDECModule(L.LightningModule):
         labels = torch.stack(labels).int()
         predictions = torch.stack(predictions)
         true_labels, true_predictions = self.postprocess(predictions, labels)
-        self.log_dict(self.metric(true_labels, true_predictions), logger=True)
+        self.log_dict(self.metric(true_labels, true_predictions, binary=self.binary), logger=True)
         if self.write_csv:
             self.csv_writer.write_csv()
             self.csv_writer.clear_state()
             self.test_step_outputs.clear()
-        return {"metrics" : self.metric(true_labels, true_predictions)}
+        return {"metrics" : self.metric(true_labels, true_predictions, binary=self.binary)}
 
     def configure_optimizers(self) -> Any:
         model = self.model

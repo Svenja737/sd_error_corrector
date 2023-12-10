@@ -1,6 +1,6 @@
 import evaluate
 
-def compute_metrics(labels, preds):
+def compute_metrics(labels, preds, binary=False):
     # just normal token class metrics, since this is just a token classifier for now 
 
     acc = evaluate.load("accuracy")
@@ -13,12 +13,19 @@ def compute_metrics(labels, preds):
     recall = []
     F1 = []
 
-    for l, p in list(zip(labels, preds)):
-        accuracy.append(acc.compute(predictions=p, references=l))
-        precision.append(prec.compute(predictions=p, references=l, average="macro"))
-        recall.append(rec.compute(predictions=p, references=l, average="macro"))
-        F1.append(f1.compute(predictions=p, references=l, average="macro"))
-    
+    if binary == False:
+        for l, p in list(zip(labels, preds)):
+            accuracy.append(acc.compute(predictions=p, references=l))
+            precision.append(prec.compute(predictions=p, references=l, average="macro"))
+            recall.append(rec.compute(predictions=p, references=l, average="macro"))
+            F1.append(f1.compute(predictions=p, references=l, average="macro"))
+    else:
+        for l, p in list(zip(labels, preds)):
+            accuracy.append(acc.compute(predictions=p, references=l))
+            precision.append(prec.compute(predictions=p, references=l, average="binary"))
+            recall.append(rec.compute(predictions=p, references=l, average="binary"))
+            F1.append(f1.compute(predictions=p, references=l, average="binary"))
+
     return {
         "Accuracy" : sum([x["accuracy"]for x in accuracy])/len(labels),
         "Precision" : sum([x["precision"]for x in precision])/len(labels),
