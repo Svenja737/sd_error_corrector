@@ -95,7 +95,6 @@ class SDECPipeline:
                    model_name_or_path, 
                    num_labels,
                    checkpoint, 
-                   label_noise=None,
                    dataset_type=None, 
                    santa_barbara_path=None,
                    write_csv=False,
@@ -128,7 +127,6 @@ class SDECPipeline:
         
         sdec_model = SDECModule.load_from_checkpoint(
             checkpoint,
-            label_noise=label_noise,
             map_location=torch.device('cpu'),
             num_labels=num_labels,
             train_batch_size=1,
