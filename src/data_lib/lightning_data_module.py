@@ -69,6 +69,8 @@ class SDDataModule(L.LightningDataModule):
                  model_name_or_path: str,
                  dataset_type: str,
                  num_labels: int,
+                 test_type: str,
+                 test_noise: float,
                  train_batch_size: int=8,
                  eval_batch_size: int=8,
                  num_workers: int=4,
@@ -86,6 +88,8 @@ class SDDataModule(L.LightningDataModule):
         self.prepare_data_per_node = prepare_data_per_node
         self.allow_zero_length_dataloader_with_multiple_devices = allow_zero_length_dataloader_with_multiple_devices
         self.dataset_type = dataset_type
+        self.test_type = test_type
+        self.test_noise = test_noise
         self.santa_barbara_path = santa_barbara_path
         self.tokenizer = AutoTokenizer.from_pretrained(self.model_name_or_path, add_prefix_space=True)
 
@@ -97,7 +101,7 @@ class SDDataModule(L.LightningDataModule):
         if self.dataset_type == "switchboard":
             dp = DataPipeline()
             corpus = dp.load_dset(dataset="switchboard", variant="isip-aligned")
-            switchboard_prep = SwitchboardPreprocessor()
+            switchboard_prep = SwitchboardPreprocessor(test_noise_type=self.test_type, test_set_noise=self.test_noise)
             self.dataset = switchboard_prep.format_for_classification(corpus)
 
         if self.dataset_type == "santa_barbara":
@@ -107,7 +111,7 @@ class SDDataModule(L.LightningDataModule):
         if self.dataset_type == "fused":
             dp = DataPipeline()
             corpus_one = dp.load_dset(dataset="switchboard", variant="isip-aligned")
-            switchboard_prep = SwitchboardPreprocessor()
+            switchboard_prep = SwitchboardPreprocessor(test_noise_type=self.test_noise_type, test_set_noise=self.test_set_noise)
             dataset_one = switchboard_prep.format_for_classification(corpus_one)
             santa_b_prep = SantaBarbaraPreprocessor()
             dataset_two = santa_b_prep.make_dataset_object(self.santa_barbara_path)

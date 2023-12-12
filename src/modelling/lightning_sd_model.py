@@ -197,7 +197,7 @@ class SDECModule(L.LightningModule):
                                           "tokens" : "".join(tokens),
                                           "predictions" : str(cleaned_preds[0]),
                                           "labels" : str(cleaned_labels[0]),
-                                          "perturbed_labels": "".join(torch.Tensor.tolist(p_labels))})
+                                          "perturbed_labels": torch.Tensor.tolist(p_labels)})
             
         return {"predictions" : logits.argmax(dim=-1), "labels": labels}
 

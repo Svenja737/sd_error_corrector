@@ -95,6 +95,8 @@ class SDECPipeline:
                    model_name_or_path, 
                    num_labels,
                    checkpoint, 
+                   test_type,
+                   test_noise=None,
                    dataset_type=None, 
                    santa_barbara_path=None,
                    write_csv=False,
@@ -119,6 +121,8 @@ class SDECPipeline:
             model_name_or_path,
             dataset_type,
             num_labels,
+            test_type,
+            test_noise,
             train_batch_size=1,
             eval_batch_size=1,
             num_workers=4,
@@ -195,7 +199,6 @@ class SDECPipeline:
         preprocessor = SwitchboardPreprocessor()
         # inputs["perturbed_labels"] = inputs["labels"]
         inputs["perturbed_labels"] = torch.Tensor.tolist(correct_labels)[0]
-        print(inputs["perturbed_labels"])
         chunked_data = preprocessor.divide_sessions_into_chunks([inputs])
 
         input_ids = []
@@ -217,10 +220,8 @@ class SDECPipeline:
             with torch.no_grad():
                 embeddings = sdec_model.get_embeddings(i, a)
                 fused = sdec_model.reconcile_features_labels(embeddings, p)
-                print(fused)
                 outputs = sdec_model.forward(fused)
                 preds += sdec_model.postprocess(outputs[1].argmax(dim=-1), l)[1][0]
-        print(preds)
             
         return preds
     
