@@ -169,7 +169,7 @@ class SwitchboardPreprocessor:
         test_split = chunked_data[train_len+val_len:]
 
         for item in test_split:
-            item["perturbed_labels"] = self.perturb_test_labels(item["perturbed_labels"], 0.1)
+            item["perturbed_labels"] = self.perturb_test_labels(item["perturbed_labels"], 0.2)
             # item["perturbed_labels"] = self.perturb_test_labels_overlap(item["perturbed_labels"], win_size=3)
             # item["tokens"] = self.perturb_test_tokens(item["tokens"], 4, 0.3, 5)
 
