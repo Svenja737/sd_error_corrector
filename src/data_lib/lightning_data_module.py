@@ -101,7 +101,7 @@ class SDDataModule(L.LightningDataModule):
         if self.dataset_type == "switchboard":
             dp = DataPipeline()
             corpus = dp.load_dset(dataset="switchboard", variant="isip-aligned")
-            switchboard_prep = SwitchboardPreprocessor(test_noise_type=self.test_type, test_set_noise=self.test_noise)
+            switchboard_prep = SwitchboardPreprocessor(test_type=self.test_type, test_noise=self.test_noise)
             self.dataset = switchboard_prep.format_for_classification(corpus)
 
         if self.dataset_type == "santa_barbara":
@@ -111,7 +111,7 @@ class SDDataModule(L.LightningDataModule):
         if self.dataset_type == "fused":
             dp = DataPipeline()
             corpus_one = dp.load_dset(dataset="switchboard", variant="isip-aligned")
-            switchboard_prep = SwitchboardPreprocessor(test_noise_type=self.test_noise_type, test_set_noise=self.test_set_noise)
+            switchboard_prep = SwitchboardPreprocessor(test_type=self.test_type, test_noise=self.test_noise)
             dataset_one = switchboard_prep.format_for_classification(corpus_one)
             santa_b_prep = SantaBarbaraPreprocessor()
             dataset_two = santa_b_prep.make_dataset_object(self.santa_barbara_path)

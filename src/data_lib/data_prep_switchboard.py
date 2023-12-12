@@ -38,16 +38,16 @@ class SwitchboardPreprocessor:
     """
 
     def __init__(self, 
-                 test_noise_type: str=None,
-                 test_set_noise: float=0.0,
+                 test_type: str=None,
+                 test_noise: float=0.0,
                  test_set_overlap_window: int=3,
                  token_noise_win_size: int=4,
                  token_noise_probability: float= 0.8,
                  token_noise_far_swap: int=5,
                  ) -> None:
         
-        self.test_noise_type = test_noise_type
-        self.test_set_noise = test_set_noise
+        self.test_type = test_type
+        self.test_noise = test_noise
         self.test_set_overlap_window = test_set_overlap_window
         self.token_noise_win_size = token_noise_win_size
         self.token_noise_probability = token_noise_probability
@@ -181,13 +181,13 @@ class SwitchboardPreprocessor:
         val_split = chunked_data[train_len:train_len+val_len]
         test_split = chunked_data[train_len+val_len:]
 
-        if self.test_noise_type == "fixed_noise":
+        if self.test_type == "fixed_noise":
             for item in test_split:
-                item["perturbed_labels"] = self.perturb_test_labels(item["perturbed_labels"], self.test_set_noise)
-        elif self.test_noise_type == "overlap_noise":
+                item["perturbed_labels"] = self.perturb_test_labels(item["perturbed_labels"], self.test_noise)
+        elif self.test_type == "overlap_noise":
             for item in test_split:
                 item["perturbed_labels"] = self.perturb_test_labels_overlap(item["perturbed_labels"], self.test_set_overlap_window)
-        elif self.test_noise_type == "overlap_token_noise":
+        elif self.test_type == "overlap_token_noise":
             for item in test_split:
                 item["tokens"] = self.perturb_test_tokens(item["tokens"], self.token_noise_win_size, self.token_noise_probability, self.token_noise_far_swap)
         else:
