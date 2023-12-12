@@ -5,6 +5,7 @@ import regex as re
 from datasets import Dataset, DatasetDict
 from data_pipelines import datasets
 from typing import List, Dict
+from data_pipelines.datasets import DataPipeline
 
 
 # # # UTILS FOR SWICHBOARD CORPUS # # #
@@ -108,7 +109,7 @@ class SwitchboardPreprocessor:
             sorted_session = sorted(session_turns, key=lambda x: (x["start"]))
             all_turns.append(sorted_session)
 
-        return all_turns[:1000]
+        return all_turns
        
     def divide_sessions_into_chunks(self, switchboard_dataset, inference=False) -> list:
         """
@@ -162,10 +163,15 @@ class SwitchboardPreprocessor:
         train_len = int(0.8 * len(chunked_data))
         val_len = int(0.05 * len(chunked_data)) if int(0.05 * len(chunked_data)) != 0 else 1
 
-        train_split = chunked_data[ : train_len]
+        train_split = chunked_data[:train_len]
         random.shuffle(train_split)
-        val_split = chunked_data[train_len : train_len+val_len]
-        test_split = chunked_data[train_len+val_len : ]
+        val_split = chunked_data[train_len:train_len+val_len]
+        test_split = chunked_data[train_len+val_len:]
+
+        for item in test_split:
+            item["perturbed_labels"] = self.perturb_test_labels(item["perturbed_labels"], 0.1)
+            # item["perturbed_labels"] = self.perturb_test_labels_overlap(item["perturbed_labels"], win_size=3)
+            # item["tokens"] = self.perturb_test_tokens(item["tokens"], 4, 0.3, 5)
 
         prepared_data = DatasetDict({"train" : Dataset.from_list(train_split), 
                                     "validation" : Dataset.from_list(val_split), 
@@ -173,6 +179,50 @@ class SwitchboardPreprocessor:
 
         return prepared_data
     
+    def perturb_test_labels(self, perturbed_labels, noise_n):
+        seq_length = len(perturbed_labels)
+        range_perturbed_labels = int(seq_length*noise_n)
+        id_batch = [(i, label) for i, label in enumerate(perturbed_labels)] 
+        random.shuffle(id_batch)
+        label_list = list(set(perturbed_labels))
+        rand_labels = [(i[0], random.choice(label_list)) for i in id_batch[:range_perturbed_labels]]
+        id_batch[:range_perturbed_labels] = rand_labels
+        id_batch.sort()
+        return [i[1] for i in id_batch]
+
+    def perturb_test_labels_overlap(self, perturbed_labels, win_size):
+        perturbed = []
+        mark_one = perturbed_labels[0]
+        mark_two = 0
+        for i in range(len(perturbed_labels)):
+            if i < mark_two:
+                continue
+            if mark_one == perturbed_labels[i]:
+                perturbed.append(perturbed_labels[i])
+                continue
+            else:
+                perturbed += random.sample(perturbed_labels[i:i+win_size], len(perturbed_labels[i:i+win_size]))
+            mark_one = perturbed_labels[i]
+            mark_two = i + win_size
+        return perturbed
+
+    def perturb_test_tokens(self, tokens, near_window_size, true_false_prob, noise_far):
+        perturbed = []
+        for i in range(len(tokens)):
+            input_id_window = tokens[i:i+near_window_size]
+            change_token = random.choices([True, False], [true_false_prob, 1-true_false_prob], k=1)[0]
+            if change_token == True:
+                perturbed.append(random.sample(input_id_window, len(input_id_window))[0])
+            else:
+                perturbed.append(input_id_window[0])
+
+        num_tokens = len(tokens)
+        index_list = random.sample(list(range(num_tokens)), noise_far)
+        index_list_shuffled = random.sample(index_list, len(index_list))
+        for j, k in list(zip(index_list, index_list_shuffled)):
+            perturbed[j], perturbed[k] = perturbed[k], perturbed[j]
+
+        return perturbed
 
     def format_for_classification(self, switchboard_corpus) -> DatasetDict:
         """
@@ -217,8 +267,14 @@ class SwitchboardPreprocessor:
 
         # split_data["train"].save_to_disk("/home/sfilthaut/sdec_revamped/sdec_revamped/sw_data/train")
         # split_data["validation"].save_to_disk("/home/sfilthaut/sdec_revamped/sdec_revamped/sw_data/validation")
-        # split_data["test"].save_to_disk("/home/sfilthaut/sdec_revamped/sdec_revamped/sw_data/test")
+        # split_data["test"].save_to_disk("/home/sfilthaut/sdec_revamped/sdec_revamped/sw_data/test_noise_overlap_tokens")
+
+
 
         return split_data
-
+    
+dp = DataPipeline()
+corpus = dp.load_dset(dataset="switchboard", variant="isip-aligned")
+switchboard_prep = SwitchboardPreprocessor()
+dataset = switchboard_prep.format_for_classification(corpus)
 

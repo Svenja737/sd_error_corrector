@@ -293,7 +293,7 @@ class SDECModule(L.LightningModule):
         """
         return torch.cat((backbone_embeddings, p_labels), -1)
     
-    def perturb_labels(self, batched_labels, noise_n, test=False):
+    def perturb_labels(self, batched_labels, noise_n):
         """
         Parameters
         ----------
@@ -309,8 +309,7 @@ class SDECModule(L.LightningModule):
             seq_length = len(batch)
             range_perturbed_labels = int(seq_length*noise_n)
             id_batch = [(i, label) for i, label in enumerate(batch)] 
-            if test != True:
-                random.shuffle(id_batch)
+            random.shuffle(id_batch)
             label_list = [x for x in range(self.num_labels)]
             rand_labels = [(i[0], random.choice(label_list)) for i in id_batch[:range_perturbed_labels]]
             init_rand_labels = [0]*self.num_labels
@@ -404,7 +403,6 @@ class SDECModule(L.LightningModule):
             self.noise_epoch = self.current_epoch
         else:
             noise = float(self.noise_epoch / 60)
-
         return noise
             
 

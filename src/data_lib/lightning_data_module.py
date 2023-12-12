@@ -159,16 +159,10 @@ class SDDataModule(L.LightningDataModule):
         for word_id in word_ids:
             if word_id != current_word:
                 current_word = word_id
-                if is_perturbed==True:
-                    label = -100 if word_id is None else labels[word_id]
-                else:
-                    label = -100 if word_id is None else labels[word_id]
+                label = -100 if word_id is None else labels[word_id]
                 new_labels.append(label)
             elif word_id is None:
-                if is_perturbed==True:
-                    new_labels.append(-100)
-                else:
-                    new_labels.append(-100)
+                new_labels.append(-100)
             elif word_id == current_word:
                 if is_perturbed == True:
                     new_labels.append(labels[word_id])
@@ -190,7 +184,6 @@ class SDDataModule(L.LightningDataModule):
         tokenized_inputs = self.tokenizer(examples["tokens"], truncation=True, padding="max_length", is_split_into_words=True, return_attention_mask=True, return_tensors="pt")
         all_labels = examples["labels"]
         new_labels = []
-
         all_perturbed_labels = examples["perturbed_labels"]
         new_perturbed_labels = []
 
@@ -198,6 +191,7 @@ class SDDataModule(L.LightningDataModule):
             word_ids = tokenized_inputs.word_ids(i)
             new_labels.append(self.align_labels_with_tokens(labels, word_ids))
             new_perturbed_labels.append(self.align_labels_with_tokens(all_perturbed_labels[i], word_ids, is_perturbed=True))
+
         tokenized_inputs["labels"] = new_labels
         tokenized_inputs["perturbed_labels"] = self.labels_to_vecs(new_perturbed_labels)
         return tokenized_inputs
@@ -249,6 +243,18 @@ class SDDataModule(L.LightningDataModule):
             label_vec = [0] * len(label_list)
             label_vecs.append([[label_vec[i]+1 if i == j else label_vec[i] for j in range(labels)] for i in label_list])
         return torch.as_tensor(label_vecs)
+    
+
+    def perturb_test_labels(self):
+        pass
+
+
+    def perturb_test_labels_overlap(self):
+        pass
+
+
+    def perturb_test_tokens(self):
+        pass
     
 
     def combine_datasets(self, dataset_a, dataset_b):
