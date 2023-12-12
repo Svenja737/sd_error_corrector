@@ -194,9 +194,10 @@ class SDECModule(L.LightningModule):
             tokens = self.csv_writer.convert_ids_to_tokens(input_ids)
             cleaned_preds, cleaned_labels = self.postprocess(logits.argmax(dim=-1), labels)
             self.csv_writer.update_state({"id" : batch_ids, 
-                                          "tokens" : "".join(tokens), 
+                                          "tokens" : "".join(tokens),
                                           "predictions" : str(cleaned_preds[0]),
-                                          "labels" : str(cleaned_labels[0])})
+                                          "labels" : str(cleaned_labels[0]),
+                                          "perturbed_labels": "".join(torch.Tensor.tolist(p_labels))})
             
         return {"predictions" : logits.argmax(dim=-1), "labels": labels}
 
