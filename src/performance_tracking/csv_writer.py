@@ -36,14 +36,10 @@ class CSVWriter:
         df = pd.DataFrame.from_records(self.state_list)
         df.to_csv(self.output_path, columns=field_names, sep=";")
 
-    def write_inference_csv(self, token_list, label_list, preds_list):
-        pass
-
     def convert_ids_to_tokens(self, input_ids_batch):
         tokenizer = AutoTokenizer.from_pretrained("roberta-base")
         input_tokens = tokenizer.batch_decode(input_ids_batch)
         return input_tokens
     
-    def save_model_and_meta_information(self, info_dict):
-        pass
+
     

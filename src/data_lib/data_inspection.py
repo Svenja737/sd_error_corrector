@@ -2,6 +2,8 @@ import pandas as pd
 import numpy as np
 import matplotlib as mpl
 from datasets import load_from_disk
+import torch
+import ast
 
 """
 - number of datapoints
@@ -62,6 +64,36 @@ def count_label_distribution(label_df):
 
     return label_dist
 
+def read_test_csv(test_csv_path):
+
+    try:
+        df = pd.read_csv(test_csv_path, delimiter=";")
+    except pd.errors.ParserError:
+        print("Error!")
+
+    perturbed_lists = []
+
+    for row in df["perturbed_labels"]:
+        p_labels = ast.literal_eval(row[1:-1])
+        new_p_labels = []
+        for p in range(len(p_labels)):
+            new_label = None
+            for l in range(len(p_labels[p])):
+                if p_labels[p][l] == 1:
+                    new_label = l
+            if new_label != None:
+                new_p_labels.append(new_label)
+        perturbed_lists.append(new_p_labels)
+
+    df["perturbed_labels"] = perturbed_lists
+
+    return df[:10]["tokens"], df[:10]["labels"], df[:10]["perturbed_labels"], df[:10]["predictions"]
+
+example_tokens, example_labels, example_perturbed, example_predictions = read_test_csv("/home/sfilthaut/sdec_revamped/sdec_revamped/test_results_csvs/sdec_test_sw_30.csv")
+print(example_tokens[4].strip("<pad>").strip("<s> ").strip(" /<s>"))
+for t, l1, l2, l3 in list(zip(example_tokens[4].split(" "), ast.literal_eval(example_labels[4]), example_perturbed[4], ast.literal_eval(example_predictions[4]))):
+    print(l1, l2)
+
 sw_train = pd.DataFrame(load_from_disk("/home/sfilthaut/sdec_revamped/sdec_revamped/sw_data/train"))
 sw_val = pd.DataFrame(load_from_disk("/home/sfilthaut/sdec_revamped/sdec_revamped/sw_data/validation"))
 sw_test = pd.DataFrame(load_from_disk("/home/sfilthaut/sdec_revamped/sdec_revamped/sw_data/test"))
@@ -72,8 +104,8 @@ sb_test = pd.DataFrame(load_from_disk("/home/sfilthaut/sdec_revamped/sdec_revamp
 # print(len(sw_train), len(sw_val), len(sw_test))
 # print(len(sb_train), len(sb_val), len(sb_test))
 
-for i in sb_train["labels"]:
-    print(list(set(i)))
+# for i in sb_train["labels"]:
+#     print(list(set(i)))
 
 # sw_train.to_csv("/home/sfilthaut/sdec_revamped/sdec_revamped/src/data_lib/sw_train.csv", sep=";")
 # sw_val.to_csv("/home/sfilthaut/sdec_revamped/sdec_revamped/src/data_lib/sw_val.csv", sep=";")

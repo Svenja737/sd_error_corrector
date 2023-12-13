@@ -183,6 +183,8 @@ class SDECPipeline:
             model_name_or_path,
             dataset_type,
             num_labels,
+            test_type=None,
+            test_noise=0.0,
             train_batch_size=8,
             eval_batch_size=8,
             num_workers=4

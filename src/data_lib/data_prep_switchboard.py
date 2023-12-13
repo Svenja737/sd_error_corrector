@@ -42,7 +42,7 @@ class SwitchboardPreprocessor:
                  test_noise: float=0.0,
                  test_set_overlap_window: int=3,
                  token_noise_win_size: int=4,
-                 token_noise_probability: float= 0.8,
+                 token_noise_probability: float= 0.3,
                  token_noise_far_swap: int=5,
                  ) -> None:
         
@@ -189,6 +189,7 @@ class SwitchboardPreprocessor:
                 item["perturbed_labels"] = self.perturb_test_labels_overlap(item["perturbed_labels"], self.test_set_overlap_window)
         elif self.test_type == "overlap_token_noise":
             for item in test_split:
+                item["perturbed_labels"] = self.perturb_test_labels_overlap(item["perturbed_labels"], self.test_set_overlap_window)
                 item["tokens"] = self.perturb_test_tokens(item["tokens"], self.token_noise_win_size, self.token_noise_probability, self.token_noise_far_swap)
         else:
             for item in test_split:
@@ -292,4 +293,11 @@ class SwitchboardPreprocessor:
         # split_data["test"].save_to_disk("/home/sfilthaut/sdec_revamped/sdec_revamped/sw_data/test")
 
         return split_data
+    
+# dp = DataPipeline()
+# corpus = dp.load_dset(dataset="switchboard", variant="isip-aligned")
+# switchboard_prep = SwitchboardPreprocessor(test_type="fixed_noise", test_noise=0.3)
+# dataset = switchboard_prep.format_for_classification(corpus)
+# print(dataset["test"][4]["labels"])
+# print(dataset["test"][4]["perturbed_labels"])
     
