@@ -158,8 +158,7 @@ class SDECPipeline:
                   dataset_type: str,
                   checkpoint: str,
                   num_labels: int, 
-                  inputs: dict,
-                  correct_labels = None) -> list:
+                  inputs: dict) -> list:
         """
         Performs inference on a single data instance.
 
@@ -199,8 +198,8 @@ class SDECPipeline:
         )
 
         preprocessor = SwitchboardPreprocessor()
-        # inputs["perturbed_labels"] = inputs["labels"]
-        inputs["perturbed_labels"] = torch.Tensor.tolist(correct_labels)[0]
+        inputs["perturbed_labels"] = inputs["labels"]
+        # inputs["perturbed_labels"] = torch.Tensor.tolist(correct_labels)[0]
         chunked_data = preprocessor.divide_sessions_into_chunks([inputs])
 
         input_ids = []

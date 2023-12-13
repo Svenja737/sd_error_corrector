@@ -192,7 +192,7 @@ class SDECModule(L.LightningModule):
         self.test_step_outputs.append({"predictions" : logits.argmax(dim=-1), "labels": labels})
         if self.write_csv:
             tokens = self.csv_writer.convert_ids_to_tokens(input_ids)
-            cleaned_preds, cleaned_labels = self.postprocess(logits.argmax(dim=-1), labels)
+            cleaned_labels, cleaned_preds = self.postprocess(logits.argmax(dim=-1), labels)
             self.csv_writer.update_state({"id" : batch_ids, 
                                           "tokens" : "".join(tokens),
                                           "predictions" : str(cleaned_preds[0]),
