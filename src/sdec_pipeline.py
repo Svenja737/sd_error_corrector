@@ -60,6 +60,8 @@ class SDECPipeline:
             model_name_or_path,
             dataset_type,
             num_labels,
+            test_type=None,
+            test_noise=0.0,
             santa_barbara_path=santa_barbara_path
             )
         
@@ -284,7 +286,7 @@ class SDECPipeline:
         rec = evaluate.load("recall")
         f1 = evaluate.load("f1")
 
-        if self.num_labels == 2:
+        if num_labels == 2:
             res["accuracy"] = acc.compute(predictions=preds, references=labels.squeeze().tolist())["accuracy"]
             res["precision"] = prec.compute(predictions=preds, references=labels.squeeze().tolist(), average="binary")["precision"]
             res["recall"] = rec.compute(predictions=preds, references=labels.squeeze().tolist(), average="binary")["recall"]
