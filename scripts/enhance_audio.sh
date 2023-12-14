@@ -1,1 +1,0 @@
-python3 enhancement.py --test_dir "/audio_files" --enhanced_dir "/audio_files_enhanced" --ckpt "checkpoints/epoch=148-pesq=0.00.ckpt"
