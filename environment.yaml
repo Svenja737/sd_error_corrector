@@ -1,0 +1,31 @@
+name: sdec
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - datasets=2.12.0=py311h06a4308_0
+  - ibm-watson=7.0.1=pyhd8ed1ab_0
+  - numpy-base=1.26.0=py311hf175353_0
+  - pandas=2.0.3=py311ha02d727_0
+  - python=3.11.4=h955ad1f_0
+  - setuptools=68.0.0=py311h06a4308_0
+  - transformers=4.29.2=py311h06a4308_0
+  - wandb=0.15.8=pyhd8ed1ab_0
+  - pip=23.1.2
+  - pip:
+      - accelerate==0.21.0
+      - data-pipelines==0.0.1a0
+      - h5py==3.8.0
+      - ipython==8.13.2
+      - lightning-utilities==0.9.0
+      - more-itertools==10.1.0
+      - numba==0.57.1
+      - numpy==1.24.4
+      - pytorch-lightning==2.0.7
+      - regex==2023.8.8
+      - seqeval==1.2.2
+      - soundfile==0.12.1
+      - toml==0.10.2
+      - torchmetrics==1.0.3
+      - tqdm==4.66.1
+  
