@@ -122,7 +122,7 @@ class SwitchboardPreprocessor:
             sorted_session = sorted(session_turns, key=lambda x: (x["start"]))
             all_turns.append(sorted_session)
 
-        return all_turns
+        return all_turns[:2000]
        
     def divide_sessions_into_chunks(self, switchboard_dataset, inference=False) -> list:
         """
