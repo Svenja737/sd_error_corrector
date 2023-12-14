@@ -1,10 +1,10 @@
 [project]
-name = "sd_error_corrector"
+name = "sdec"
 version = "0.0.1"
 authors = [
     {name = "Svenja Filthaut", email = "filthaut@cl.uni-heidelberg.de"}
 ]
-description = "Source code for an SD error corrector leveraging large language models."
+description = "Source code for an SD error corrector leveraging LLMs."
 readme = "readme.md"
 license = {text = "MIT License"}
 requires-python = ">=3.8"

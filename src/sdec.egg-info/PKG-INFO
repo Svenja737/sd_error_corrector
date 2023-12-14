@@ -1,0 +1,50 @@
+Metadata-Version: 2.1
+Name: sdec
+Version: 0.0.1
+Summary: Source code for an SD error corrector leveraging LLMs.
+Author-email: Svenja Filthaut <filthaut@cl.uni-heidelberg.de>
+License: MIT License
+Project-URL: Homepage, https://github.com/Svenja737/sd_error_corrector
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+Requires-Dist: pip==23.1.2
+Requires-Dist: transformers==4.29.2
+Requires-Dist: pytorch_lightning==2.0.7
+Requires-Dist: datasets==2.12.0
+Requires-Dist: more_itertools==10.1.0
+Requires-Dist: evaluate==0.4.0
+Requires-Dist: seqeval==1.2.2
+
+# README
+
+## Folder Structure
+
+pyproject
+config
+requirements
+readme
+-scripts
+    train
+    eval
+    inference
+    transcribe
+-src
+    - data_libs
+        data_module
+        data_prep
+        utils
+    - modeling
+        sdec_lightning_module
+    - transcription
+        transcribe_with_watson
+        watson_utils
+    - audio_enhancement
+        enhance_audio_file
+        audio_utils
+    SDEC_Pipeline
+
+## Data Structure
+
+### Training
+
+### Inference
