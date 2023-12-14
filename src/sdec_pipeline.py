@@ -163,9 +163,7 @@ class SDECPipeline:
                   num_labels: int, 
                   watson_tokens: list,
                   watson_labels: list,
-                  reference_labels=None,
-                  write_inference_csv=False,
-                  csv_path=None) -> list:
+                  reference_labels=None) -> list:
         """
         Performs inference on a single data instance.
 
@@ -243,24 +241,16 @@ class SDECPipeline:
                 true_labels += sdec_model.postprocess(outputs[1].argmax(dim=-1), l)[0][0]
                 preds += sdec_model.postprocess(outputs[1].argmax(dim=-1), l)[1][0]
                 decoded_tokens += tokenizer.batch_decode(i, skip_special_tokens=True)[0].split(" ")[1:]
-                
-        if write_inference_csv == True:
-            csv = CSVWriter(csv_path)
-            csv.update_state({
-                "tokens" : "".join(decoded_tokens),
-                "predictions" : str(preds[0]),
-                "labels" : str(labels[0]),
-                "perturbed_labels": p_label_list})
-            csv.write_csv()
 
         if reference_labels != None:
             for t, l1, l2, l3 in list(zip(decoded_tokens, p_label_list, preds, true_labels)):
                 print(f"Token: {t} | Watson Label: {l1} | Predicted Correction: {l2} | True Label: {l3}")  
-            print(self.score(preds, true_labels, num_labels=num_labels))  
-            print(self.score(p_label_list, true_labels, num_labels=num_labels)) 
+            print(f"Corrected Label Predictions: {self.score(preds, true_labels, num_labels=num_labels)}")  
+            print(f"Watson Labels:{ self.score(p_label_list, true_labels, num_labels=num_labels)}") 
         else:
             for t, l1, l2 in list(zip(decoded_tokens, p_labels, preds)):
                 print(f"Token: {t} | Watson Label: {l1} | Predicted Correction: {l2}")    
+            print(f"Watson Labels:{ self.score(p_label_list, true_labels, num_labels=num_labels)}") 
 
 
     def score(self, preds, labels, num_labels=2) -> float:
