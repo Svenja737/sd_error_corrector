@@ -10,6 +10,7 @@ from data_lib.data_prep_switchboard import SwitchboardPreprocessor
 from transcription_tools.transcribe_audio import transcribe
 from transcription_tools.utils_watson import read_watson, load_labels, save_as_txt
 from performance_tracking.classification_metrics import compute_metrics
+from performance_tracking.csv_writer import CSVWriter
 
 class SDECPipeline:
     """
@@ -158,7 +159,8 @@ class SDECPipeline:
                   dataset_type: str,
                   checkpoint: str,
                   num_labels: int, 
-                  inputs: dict) -> list:
+                  inputs: dict,
+                  reference_labels=None) -> list:
         """
         Performs inference on a single data instance.
 
@@ -198,8 +200,9 @@ class SDECPipeline:
         )
 
         preprocessor = SwitchboardPreprocessor()
+        tokenizer = AutoTokenizer.from_pretrained("roberta-base")
         inputs["perturbed_labels"] = inputs["labels"]
-        # inputs["perturbed_labels"] = torch.Tensor.tolist(correct_labels)[0]
+        inputs["labels"] = torch.Tensor.tolist(reference_labels.squeeze())
         chunked_data = preprocessor.divide_sessions_into_chunks([inputs])
 
         input_ids = []
@@ -207,6 +210,8 @@ class SDECPipeline:
         p_labels = []
         attention_mask = []
         preds = []
+        true_labels = []
+        post_tokens = []
 
         for i in chunked_data:
             i["labels"] = [i["labels"]]
@@ -222,9 +227,11 @@ class SDECPipeline:
                 embeddings = sdec_model.get_embeddings(i, a)
                 fused = sdec_model.reconcile_features_labels(embeddings, p)
                 outputs = sdec_model.forward(fused)
+                true_labels += sdec_model.postprocess(outputs[1].argmax(dim=-1), l)[0][0]
                 preds += sdec_model.postprocess(outputs[1].argmax(dim=-1), l)[1][0]
-            
-        return preds
+                post_tokens += tokenizer.batch_decode(i, skip_special_tokens=True)[0].split(" ")[1:]
+                
+        return post_tokens, true_labels, preds
     
     def score(self, preds, labels) -> float:
         """

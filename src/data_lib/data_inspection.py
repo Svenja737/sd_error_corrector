@@ -86,13 +86,14 @@ def read_test_csv(test_csv_path):
         perturbed_lists.append(new_p_labels)
 
     df["perturbed_labels"] = perturbed_lists
+    df["labels"], df["predictions"] = df["predictions"], df["labels"]
 
     return df[:10]["tokens"], df[:10]["labels"], df[:10]["perturbed_labels"], df[:10]["predictions"]
 
 example_tokens, example_labels, example_perturbed, example_predictions = read_test_csv("/home/sfilthaut/sdec_revamped/sdec_revamped/test_results_csvs/sdec_test_sw_30.csv")
 print(example_tokens[4].strip("<pad>").strip("<s> ").strip(" /<s>"))
-for t, l1, l2, l3 in list(zip(example_tokens[4].split(" "), ast.literal_eval(example_labels[4]), example_perturbed[4], ast.literal_eval(example_predictions[4]))):
-    print(l1, l2)
+for t, l1, l2, l3 in list(zip(example_tokens[5].strip("<pad>").strip("<s> ").strip(" /<s>").split(" "), ast.literal_eval(example_labels[5]), example_perturbed[5], ast.literal_eval(example_predictions[5]))):
+    print(t, l1, l2, l3)
 
 sw_train = pd.DataFrame(load_from_disk("/home/sfilthaut/sdec_revamped/sdec_revamped/sw_data/train"))
 sw_val = pd.DataFrame(load_from_disk("/home/sfilthaut/sdec_revamped/sdec_revamped/sw_data/validation"))

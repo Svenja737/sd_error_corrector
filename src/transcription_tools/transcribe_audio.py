@@ -3,6 +3,7 @@ from os.path import join, dirname
 from ibm_watson import SpeechToTextV1
 from ibm_watson.websocket import RecognizeCallback, AudioSource
 from ibm_cloud_sdk_core.authenticators import IAMAuthenticator
+from tqdm import tqdm
 
 
 def transcribe(audio_path: str, auth_token: str, model_name: str): 
@@ -49,4 +50,5 @@ def transcribe(audio_path: str, auth_token: str, model_name: str):
             max_alternatives=1,
             speaker_labels=True,
             timestamps=True,
-            profanity_filter=False,)
+            profanity_filter=False,
+        )
