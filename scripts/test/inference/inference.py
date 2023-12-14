@@ -20,7 +20,7 @@ def main():
     if args.gold_label_file != None: 
         correct_tokens, correct_labels = sdcp.load_watson_from_txt(args.gold_label_file)
 
-    sdcp.inference(args.model_name, None, args.model_checkpoint, args.num_labels, watson_tokens, watson_labels, reference_labels=correct_labels, write_inference_csv=args.write_inference_csv, csv_path=args.csv_path)
+    sdcp.inference(args.model_name, None, args.model_checkpoint, args.num_labels, watson_tokens, watson_labels, reference_labels=correct_labels)
 
 if __name__ == "__main__":
     main()
