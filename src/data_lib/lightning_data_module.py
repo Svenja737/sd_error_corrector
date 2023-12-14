@@ -20,13 +20,20 @@ class SDDataModule(L.LightningDataModule):
     ----------
     model_name_or_path: str
         Name of huggingface model in hub or saved locally (supported: roberta)
+    dataset_type: str
+        What dataset to use. 
+    num_labels: int
+        Number of possible individual speakers in data.
+    test_type: str
+        Set testing mode.
+    test_noise: str
+        Set testing noise.
     train_batch_size: int
         Batch size for training (default: 8)
     eval_batch_size: int
         Batch size for evaluation (default: 8)
-    num_labels: int
-        Number of possible individual speakers in data.
     num_workers: int
+        Number of workers.
     label_noise: float
         Level of reference label perturbation.
     prepare_data_per_node: bool
@@ -151,13 +158,8 @@ class SDDataModule(L.LightningDataModule):
     def align_labels_with_tokens(self, labels, word_ids) -> List:
         """
         Given token level labels and word_ids, align labels with tokens. 
-
-        Parameters
-        ----------
-
-        Returns
-        -------
         """
+
         new_labels = []
         current_word = None
         for word_id in word_ids:
@@ -171,17 +173,11 @@ class SDDataModule(L.LightningDataModule):
                 new_labels.append(-100)
         return new_labels
 
-
     def tokenize_and_align_labels(self, examples) -> Dict:
         """
         Tokenize and align labels and perturbed labels with tokens.
-
-        Parameters
-        ----------
-
-        Returns
-        -------
         """
+
         tokenized_inputs = self.tokenizer(examples["tokens"], truncation=True, padding="max_length", is_split_into_words=True, return_attention_mask=True, return_tensors="pt")
         all_labels = examples["labels"]
         new_labels = []
@@ -197,7 +193,6 @@ class SDDataModule(L.LightningDataModule):
         tokenized_inputs["perturbed_labels"] = self.labels_to_vecs(new_perturbed_labels)
         return tokenized_inputs
     
-
     def labels_to_vecs(self, batch_label_list) -> torch.tensor:
         """
         Turn a list of (batched) labels into a tensor of dimension (batchsize, seq_length, num_labels),
@@ -212,8 +207,8 @@ class SDDataModule(L.LightningDataModule):
         -------
         tensor
             Tensor of labels, with the labels being vectors of dim 1 x num_labels.
-
         """
+
         label_vecs = []
         for label_list in batch_label_list:
             labels = len(list(set(label_list)))
@@ -223,22 +218,11 @@ class SDDataModule(L.LightningDataModule):
             label_vecs.append([[label_vec[i]+1 if i == j else label_vec[i] for j in range(labels)] for i in label_list])
         return torch.as_tensor(label_vecs)
     
-
-    def perturb_test_labels(self):
-        pass
-
-
-    def perturb_test_labels_overlap(self):
-        pass
-
-
-    def perturb_test_tokens(self):
-        pass
-    
-
     def combine_datasets(self, dataset_a, dataset_b):
         """
+        Combine the Switchboard and Santa Barbara datasets.
         """
+        
         train_fused = datasets.concatenate_datasets([dataset_a["train"], dataset_b["train"]])
         validation_fused = datasets.concatenate_datasets([dataset_a["validation"], dataset_b["validation"]])
         test_fused = datasets.concatenate_datasets([dataset_a["test"], dataset_b["test"]])

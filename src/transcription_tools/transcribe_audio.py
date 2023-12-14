@@ -15,6 +15,8 @@ def transcribe(audio_path: str, auth_token: str, model_name: str):
         filepath to audio file you want to transcribe
     auth_token: str
         IBM authenticator token for API
+    model_name: str
+        IBM Watson model variant (see here for reference: https://cloud.ibm.com/docs/speech-to-text?topic=speech-to-text-models)
     """
 
     authenticator = IAMAuthenticator(auth_token)

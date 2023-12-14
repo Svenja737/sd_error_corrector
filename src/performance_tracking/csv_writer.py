@@ -5,19 +5,7 @@ from transformers import AutoTokenizer
 
 class CSVWriter:
     """
-    Class for saving information from training/eval/testing and writing them into a CSV file for inspection.
-
-    Methods
-    -------
-    update_state(output_dict)
-    clear_state()
-    write()
-    convert_ids_to_tokens()
-
-    Attributes
-    ----------
-    state_list : list
-    output_path : str
+    Class for saving information during testing and writing them into a CSV file for inspection.
     """
 
     def __init__(self, csv_save_path) -> None:

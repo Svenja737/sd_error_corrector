@@ -1,7 +1,7 @@
 import evaluate
 
 def compute_metrics(labels, preds, binary=False):
-    # just normal token class metrics, since this is just a token classifier for now 
+    # just normal token classification metrics, since the model is a token classifier
 
     acc = evaluate.load("accuracy")
     prec = evaluate.load("precision")
