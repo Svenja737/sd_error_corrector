@@ -65,7 +65,7 @@ def load_labels(reference_text_file) -> list:
         for line in file.readlines():
             labels.append(int(line.split("\t")[1].strip("\n")))
 
-    return torch.tensor([labels])
+    return labels
 
 
 def load_tokens(reference_text_file) -> list:
@@ -84,7 +84,7 @@ def load_tokens(reference_text_file) -> list:
     """
 
     tokens = []
-    with open(f"/home/sfilthaut/sdec_revamped/sdec_revamped/{reference_text_file}", "r") as file:
+    with open(reference_text_file, "r") as file:
         for line in file.readlines():
             tokens.append(line.split("\t")[0])
 

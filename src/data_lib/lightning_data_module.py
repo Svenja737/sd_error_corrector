@@ -148,7 +148,7 @@ class SDDataModule(L.LightningDataModule):
         return DataLoader(self.test_dataset, batch_size=self.eval_batch_size, num_workers=self.num_workers, collate_fn=self.data_collator)
     
 
-    def align_labels_with_tokens(self, labels, word_ids, is_perturbed=False) -> List:
+    def align_labels_with_tokens(self, labels, word_ids) -> List:
         """
         Given token level labels and word_ids, align labels with tokens. 
 
@@ -168,10 +168,7 @@ class SDDataModule(L.LightningDataModule):
             elif word_id is None:
                 new_labels.append(-100)
             elif word_id == current_word:
-                if is_perturbed == True:
-                    new_labels.append(labels[word_id])
-                else:
-                    new_labels.append(-100)
+                new_labels.append(-100)
         return new_labels
 
 
@@ -194,32 +191,10 @@ class SDDataModule(L.LightningDataModule):
         for i, labels in enumerate(all_labels):
             word_ids = tokenized_inputs.word_ids(i)
             new_labels.append(self.align_labels_with_tokens(labels, word_ids))
-            new_perturbed_labels.append(self.align_labels_with_tokens(all_perturbed_labels[i], word_ids, is_perturbed=True))
+            new_perturbed_labels.append(self.align_labels_with_tokens(all_perturbed_labels[i], word_ids))
 
         tokenized_inputs["labels"] = new_labels
         tokenized_inputs["perturbed_labels"] = self.labels_to_vecs(new_perturbed_labels)
-        return tokenized_inputs
-    
-
-    def tokenize_and_align_labels_inference(self, examples) -> Dict:
-        """
-        Tokenize and align labels (produced by STT engine) with tokens. 
-
-        Parameters
-        ----------
-
-        Returns
-        -------
-        """
-        tokenized_inputs = self.tokenizer(examples["tokens"], truncation=True, padding="max_length", is_split_into_words=True, return_attention_mask=True, return_tensors="pt")
-        all_labels = examples["labels"]
-        new_labels = []
-
-        for i, labels in enumerate(all_labels):
-            word_ids = tokenized_inputs.word_ids(i)
-            new_labels.append(self.align_labels_with_tokens(labels, word_ids))
-
-        tokenized_inputs["labels"] = self.labels_to_vecs(new_labels)
         return tokenized_inputs
     
 

@@ -10,12 +10,11 @@ os.environ['TRANSFORMERS_NO_ADVISORY_WARNINGS'] = 'true'
 def main():
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model_name", default="roberta-base", help="Backbone model for extracting word embeddings (default: roberta-base).")
     parser.add_argument("--num_labels", type=int, help="Number of labels, equal to max speakers in one sample in data.")
     parser.add_argument("--trained_checkpoint", help="Trained SDEC model checkpoint.")
     parser.add_argument("--dataset_type", choices=["switchboard", "santa_barbara", "fused"], help="Dataset variant, either Switchboard, Santa Barbara or both (i.e. fused).")
     parser.add_argument("--test_type", choices=["fixed_noise", "overlap_noise", "overlap_token_noise", "None"])
-    parser.add_argument("--test_noise", type=float)
+    parser.add_argument("--label_noise", type=float)
     parser.add_argument("--wandb_key", help="Authentification key for wandb logger.")
     parser.add_argument("--santa_barbara_path", help="Path to downloaded SB dataset. Download at https://www.linguistics.ucsb.edu/sites/secure.lsit.ucsb.edu.ling.d7/files/sitefiles/research/SBC/SBCorpus.zip")
     parser.add_argument("--write_csv", action="store_true", help="Save model information during testing.")
@@ -24,11 +23,10 @@ def main():
 
     wandb.login(anonymous="allow", key=args.wandb_key)
     sdec = SDECPipeline()
-    sdec.test_model(args.model_name, 
+    sdec.test_model(args.trained_checkpoint,
                     args.num_labels, 
-                    args.trained_checkpoint, 
                     args.test_type,
-                    test_noise=args.test_noise,
+                    test_noise=args.label_noise,
                     dataset_type=args.dataset_type, 
                     santa_barbara_path=args.santa_barbara_path, 
                     write_csv=args.write_csv, 
