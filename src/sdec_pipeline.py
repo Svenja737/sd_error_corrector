@@ -257,7 +257,7 @@ class SDECPipeline:
             for t, l1, l2, l3 in list(zip(decoded_tokens, p_label_list, preds, true_labels)):
                 print(f"Token: {t} | Watson Label: {l1} | Predicted Correction: {l2} | True Label: {l3}")  
             print(self.score(preds, true_labels, num_labels=num_labels))  
-            print(self.score(torch.Tensor.tolist(p_labels), true_labels, num_labels=num_labels)) 
+            print(self.score(p_label_list, true_labels, num_labels=num_labels)) 
         else:
             for t, l1, l2 in list(zip(decoded_tokens, p_labels, preds)):
                 print(f"Token: {t} | Watson Label: {l1} | Predicted Correction: {l2}")    
@@ -287,15 +287,15 @@ class SDECPipeline:
         f1 = evaluate.load("f1")
 
         if num_labels == 2:
-            res["accuracy"] = acc.compute(predictions=preds, references=labels.squeeze().tolist())["accuracy"]
-            res["precision"] = prec.compute(predictions=preds, references=labels.squeeze().tolist(), average="binary")["precision"]
-            res["recall"] = rec.compute(predictions=preds, references=labels.squeeze().tolist(), average="binary")["recall"]
-            res["f1"] = f1.compute(predictions=preds, references=labels.squeeze().tolist(), average="binary")["f1"]
+            res["accuracy"] = acc.compute(predictions=preds, references=labels)["accuracy"]
+            res["precision"] = prec.compute(predictions=preds, references=labels, average="binary")["precision"]
+            res["recall"] = rec.compute(predictions=preds, references=labels, average="binary")["recall"]
+            res["f1"] = f1.compute(predictions=preds, references=labels, average="binary")["f1"]
         else:
-            res["accuracy"] = acc.compute(predictions=preds, references=labels.squeeze().tolist())["accuracy"]
-            res["precision"] = prec.compute(predictions=preds, references=labels.squeeze().tolist(), average="weighted")["precision"]
-            res["recall"] = rec.compute(predictions=preds, references=labels.squeeze().tolist(), average="weighted")["recall"]
-            res["f1"] = f1.compute(predictions=preds, references=labels.squeeze().tolist(), average="weighted")["f1"]
+            res["accuracy"] = acc.compute(predictions=preds, references=labels)["accuracy"]
+            res["precision"] = prec.compute(predictions=preds, references=labels, average="weighted")["precision"]
+            res["recall"] = rec.compute(predictions=preds, references=labels, average="weighted")["recall"]
+            res["f1"] = f1.compute(predictions=preds, references=labels, average="weighted")["f1"]
        
         return res
     
