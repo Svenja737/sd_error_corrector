@@ -7,11 +7,10 @@ Speaker Diarization Error Correction". Below you can find instructions for repli
 
 Install this module in editable mode by following these steps:
 
-1. Clone this repository into an empty folder
+1. Clone this repository into an empty folder.
 2. Create a virtual environment for your experiments (make sure to use pip version 23.1. and python 3.11)\
-Note: install the "data-pipelines" module first by following the instructions: https://github.com/mumair01/Data-Pipelines
-
-3. Install the module with the command "python3 -m pip install -e sdec"
+Note: install the "data-pipelines" module first by following the instructions: https://github.com/mumair01/Data-Pipelines.
+3. Install the module with the command "python3 -m pip install -e sdec".
 
 ## Data Structure
 

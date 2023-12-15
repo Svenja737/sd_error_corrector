@@ -10,6 +10,10 @@ class SantaBarbaraPreprocessor:
         pass
 
     def read_corpus(self, file_path):
+        """
+        Read corpus from files.
+        """
+
         with open(file_path, "r", encoding="utf-8", errors="replace") as sb_file:
             lines = sb_file.readlines()
             turns = []
@@ -34,6 +38,10 @@ class SantaBarbaraPreprocessor:
             return turns
         
     def extract_and_format(self, raw_data):
+        """
+        Filter out invalid speaker ids.
+        """
+
         all_speakers = []
         for turn_dict in raw_data:
             if type(turn_dict) == dict:
@@ -44,6 +52,10 @@ class SantaBarbaraPreprocessor:
         return raw_data
 
     def remove_invalid_chars(self, list_of_words):
+        """
+        Remove non-letter characters from text. 
+        """
+
         clean_list = []
         invalid_chars = ["@", "-", "$", "[", "]", ".", "<", ">", "=", "--", "X", "&", "2", "3", "4", "~", "?", "%", "!"]
         invalid_expressions = ['', "VO", "YWN", "SING", "HI", "Q", "P", "WHISTLE", "PAR", "TALK"]
@@ -59,6 +71,10 @@ class SantaBarbaraPreprocessor:
         return clean_list
     
     def combine_split_speaker_turns(self, clean_data):
+        """
+        Combine split turns by the same speaker. 
+        """
+
         turns_by_speaker = []
         current_speaker = None
         previous_speaker = None
@@ -96,11 +112,21 @@ class SantaBarbaraPreprocessor:
         return turns_by_speaker
         
     def normalize_labels(self, label_list):
+        """
+        Reset speaker labels for each split speech segment, according to the actual 
+        number of speakers in the segment.
+        """
+
         speakers = list(set(label_list))
         new_speakers = [speakers.index(l) for l in label_list]
         return new_speakers
 
     def make_dataset_object(self, path_to_data_files):
+        """
+        Execute functions for dataset reading and cleaning, and 
+        split into train, validation, test.
+        """
+        
         switchboard = SwitchboardPreprocessor()
         corpus = []
         for file in os.listdir(path_to_data_files):
